@@ -249,7 +249,7 @@ class ProductListView(generics.ListAPIView):
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
     pagination_class = StandardResultsSetPagination
-    permission_classes = [permissions.AllowAny]  # ← обязательно!
+    permission_classes = [permissions.AllowAny]
 
 
 @api_view(['GET'])

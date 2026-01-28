@@ -8,6 +8,15 @@ class ProductFilter(django_filters.FilterSet):
     max_price = django_filters.NumberFilter(field_name='price', lookup_expr='lte')
     search = django_filters.CharFilter(method='filter_search')
 
+    ordering = django_filters.ChoiceFilter(
+        choices=[
+            ('price', 'Цена: по возрастанию'),
+            ('-price', 'Цена: по убыванию'),
+        ],
+        method='filter_ordering',
+        label='Сортировка'
+    )
+
     class Meta:
         model = Product
         fields = []
@@ -17,3 +26,8 @@ class ProductFilter(django_filters.FilterSet):
             models.Q(name__icontains=value) |
             models.Q(description__icontains=value)
         )
+
+    def filter_ordering(self, queryset, name, value):
+        if value in ['price', '-price']:
+            return queryset.order_by(value)
+        return queryset
