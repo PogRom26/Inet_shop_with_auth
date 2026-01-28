@@ -25,20 +25,20 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # === API: Магазин (только для фронтенда!) ===
-    path('api/shop/', include('shop.urls')),  # ← эти пути НЕ для пользователей
+    path('api/shop/', include('shop.urls')),
 
-    # === API: Документация (опционально) ===
+    # === API: Документация ===
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
-    # === HTML-страницы (единственное, что видит пользователь) ===
+    # === HTML-страницы ===
     path('', index, name='home'),
-    path('products/', products_page, name='products'),
-    path('product/', product_detail_page, name='product_detail'),
+    path('catalog/', products_page, name='products'),
+    path('product/<int:product_id>/', product_detail_page, name='product_detail'),
     path('login/', login_page, name='login'),
     path('register/', register_page, name='register'),
     path('profile/', profile_page, name='profile'),
     path('cart/', cart_page, name='cart'),
-    path('order/', order_detail_page, name='order_detail'),
+    path('order/<int:order_id>/', order_detail_page, name='order_detail'),
     path('orders-history/', orders_history_page, name='orders_history'),
 ]

@@ -15,12 +15,13 @@
                         <input type="email" name="email" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Имя пользователя</label>
-                        <input type="text" name="username" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Пароль</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" id="password" required>
+                            <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                                👁️
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
                 </form>
@@ -38,13 +39,20 @@
 </div>
 
 <script>
+// Переключение видимости пароля
+document.getElementById('togglePassword').onclick = () => {
+    const pass = document.getElementById('password');
+    pass.type = pass.type === 'password' ? 'text' : 'password';
+};
+
+// Форма регистрации
 document.getElementById('registerForm').onsubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
     const div = document.getElementById('result');
 
-    // === Шаг 1: Регистрация ===
+    // === Регистрация ===
     const registerRes = await fetch('/api/auth/register/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,14 +64,13 @@ document.getElementById('registerForm').onsubmit = async (e) => {
     if (!registerRes.ok) {
         div.innerHTML = `
             <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i>
                 Ошибка: ${Object.values(registerData).flat().join(', ') || 'Неизвестная ошибка'}
             </div>
         `;
         return;
     }
 
-    // === Шаг 2: Вход (получение токенов) ===
+    // === Вход после регистрации ===
     const loginRes = await fetch('/api/token/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,35 +85,33 @@ document.getElementById('registerForm').onsubmit = async (e) => {
     if (!loginRes.ok) {
         div.innerHTML = `
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i>
-                Успешно зарегистрированы, но не удалось войти. Пожалуйста, войдите вручную.
+                Успешно зарегистрированы, но вход не выполнен. <a href="/login/">Войдите вручную</a>.
             </div>
         `;
         setTimeout(() => {
             window.location.href = '/login/';
-        }, 3000);
+        }, 4000);
         return;
     }
 
-    // === Шаг 3: Сохраняем токены ===
+    // === Сохраняем токены ===
     localStorage.setItem('access', tokenData.access);
     localStorage.setItem('refresh', tokenData.refresh);
 
-    // === Шаг 4: Показываем успех и редиректим ===
+    // === Успех! ===
     div.innerHTML = `
         <div class="alert alert-success">
-            <i class="bi bi-check-circle"></i>
-            Регистрация прошла успешно! Вход выполнен. Переходим в каталог...
+            ✅ Регистрация прошла успешно! Вы вошли в систему. Через 3 секунды — переход...
         </div>
     `;
 
-    // Блокируем форму
+    // Блокировка формы
     e.target.querySelectorAll('button, input').forEach(el => el.disabled = true);
 
-    // Редирект через 2 секунды
+    // Редирект через 3 секунды
     setTimeout(() => {
         window.location.href = '/products/';
-    }, 2000);
+    }, 3000);
 };
 </script>
 {% endblock %}

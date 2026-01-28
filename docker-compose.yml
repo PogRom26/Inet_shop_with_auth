@@ -1,13 +1,12 @@
-# docker-compose.yml
 version: '3.8'
 
 services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: shopdb
-      POSTGRES_USER: shopuser
-      POSTGRES_PASSWORD: shoppass
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
@@ -22,9 +21,9 @@ services:
       - "8000:8000"
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgres://shopuser:shoppass@db:5432/shopdb
-      - DEBUG=1
+    env_file:
+      - .env
 
+  # Опционально: gunicorn + nginx позже
 volumes:
   postgres_data:

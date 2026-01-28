@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from user.views import RegisterView
 
 app_name = 'shop'
 
@@ -18,6 +19,7 @@ urlpatterns = [
     path('orders/<int:order_id>/repeat/', views.RepeatOrderView.as_view(), name='repeat-order'),
 
     # === API: каталог ===
+    path('register/', RegisterView.as_view(), name='register'),
     path('products/', views.ProductListView.as_view(), name='product-list'),
     path('categories/', views.category_list, name='category-list'),
 ]
