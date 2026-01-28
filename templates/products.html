@@ -1,4 +1,3 @@
-<!-- templates/products.html -->
 {% extends "base.html" %}
 
 {% block content %}
@@ -48,7 +47,6 @@
 <script>
 let currentPage = 1;
 let currentParams = {};
-let totalPages = 1;
 
 // Загрузка категорий
 async function loadCategories() {
@@ -117,25 +115,22 @@ async function loadProducts(params = {}) {
         html += '</div>';
         container.innerHTML = html;
 
-        // === Расчёт общего количества страниц ===
-        const pageSize = 10;
-        totalPages = Math.ceil(data.count / pageSize);
-
         // === Обновление пагинации ===
         const pagination = document.getElementById('pagination');
         const prevLi = document.getElementById('prev-li');
         const nextLi = document.getElementById('next-li');
         const pageInfo = document.getElementById('page-info');
 
-        // Обновляем текст: "Страница 2 из 5"
-        pageInfo.textContent = `Страница ${currentPage} из ${totalPages}`;
+        // Обновляем текст: "Страница 1 из 5"
+        pageInfo.textContent = `Страница ${data.current_page} из ${data.total_pages}`;
 
         // Кнопка "Назад"
-        if (data.previous) {
+        if (data.links.previous) {
             prevLi.style.display = 'block';
             document.getElementById('prev-btn').onclick = (e) => {
                 e.preventDefault();
-                currentPage--;
+                const url = new URL(data.links.previous, window.location.origin);
+                currentPage = parseInt(url.searchParams.get('page')) || 1;
                 loadProducts(currentParams);
             };
         } else {
@@ -143,11 +138,12 @@ async function loadProducts(params = {}) {
         }
 
         // Кнопка "Вперёд"
-        if (data.next) {
+        if (data.links.next) {
             nextLi.style.display = 'block';
             document.getElementById('next-btn').onclick = (e) => {
                 e.preventDefault();
-                currentPage++;
+                const url = new URL(data.links.next, window.location.origin);
+                currentPage = parseInt(url.searchParams.get('page')) || 1;
                 loadProducts(currentParams);
             };
         } else {
