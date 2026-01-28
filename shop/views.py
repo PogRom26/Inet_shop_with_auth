@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework import status, permissions, generics
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
@@ -286,12 +286,14 @@ def register_page(request):
 
 
 def profile_page(request):
-    """Личный кабинет"""
+    if not request.user.is_authenticated:
+        return redirect('/login/')
     return render(request, 'profile.html')
 
 
 def cart_page(request):
-    """Корзина"""
+    if not request.user.is_authenticated:
+        return redirect('/login/')
     return render(request, 'cart.html')
 
 
@@ -301,5 +303,6 @@ def order_detail_page(request):
 
 
 def orders_history_page(request):
-    """История заказов"""
+    if not request.user.is_authenticated:
+        return redirect('/login/')
     return render(request, 'orders_history.html')
