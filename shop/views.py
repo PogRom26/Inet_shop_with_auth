@@ -21,6 +21,8 @@ from pagination import StandardResultsSetPagination
 
 import django_filters
 
+from django.shortcuts import render
+
 class CreateOrderView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -331,3 +333,16 @@ class ProductListView(generics.ListAPIView):
     ]
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
+
+
+def index(request):
+    return render(request, 'index.html')
+
+def products_page(request):
+    return render(request, 'products.html')
+
+def cart_page(request):
+    return render(request, 'cart.html')
+
+def profile_page(request):
+    return render(request, 'profile.html')
