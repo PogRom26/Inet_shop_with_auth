@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import dj_database_url
 from decouple import config
+from drf_spectacular.settings import spectacular_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -149,3 +150,11 @@ EMAIL_HOST_PASSWORD = 'your-app-password'  # Use App Password for Gmail
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:8000"]
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Интернет-магазин API',
+    'DESCRIPTION': 'API для интернет-магазина с авторизацией, корзиной и заказами',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}

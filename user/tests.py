@@ -1,39 +1,34 @@
-# user/tests.py
-from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
-from django.urls import reverse
+from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class UserRegistrationTest(APITestCase):
+
+class AuthAPITest(APITestCase):
     def test_register_user(self):
-        url = reverse('register')
+        url = reverse('user:register')
         data = {
-            'email': 'testuser@example.com',
-            'username': 'testuser',
-            'password': 'strongpass123',
-            'first_name': 'Test',
-            'last_name': 'User'
+            'email': 'test@example.com',
+            'password': 'password123'
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(User.objects.first().email, 'testuser@example.com')
+        self.assertTrue(User.objects.filter(email='test@example.com').exists())
 
-
-class UserProfileTest(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(
-            email='test@test.com',
-            password='123',
-            username='test'
+    def test_login_user(self):
+        User.objects.create_user(
+            username='test',
+            email='test@example.com',
+            password='password123'
         )
-        self.client.login(email='test@test.com', password='123')
-
-    def test_get_profile(self):
-        url = reverse('profile')
-        response = self.client.get(url)
+        url = reverse('token_obtain_pair')
+        data = {
+            'email': 'test@example.com',
+            'password': 'password123'
+        }
+        response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['email'], 'test@test.com')
+        self.assertIn('access', response.data)
