@@ -1,8 +1,10 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework import status, permissions, generics
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -251,9 +253,10 @@ class ProductListView(generics.ListAPIView):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def category_list(request):
     categories = Category.objects.filter(is_active=True).values('id', 'name', 'slug')
-    return Response(list(categories))
+    return JsonResponse(list(categories), safe=False)
 
 
 # === HTML-страницы (явные вьюхи) ===
