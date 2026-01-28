@@ -1,5 +1,5 @@
 # shop/views.py
-from .models import Order, OrderItem, CartItem
+from .models import Order, OrderItem
 from user.models import Address
 from rest_framework import status, permissions
 from rest_framework.views import APIView
@@ -11,13 +11,12 @@ from .serializers import CartItemSerializer
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
-from weasyprint import HTML
 import tempfile
 
 from rest_framework import generics
 from .serializers import ProductSerializer
 from .filters import ProductFilter
-from pagination import StandardResultsSetPagination
+from config.pagination import StandardResultsSetPagination
 
 import django_filters
 
@@ -59,52 +58,6 @@ class CreateOrderView(APIView):
             status='pending'
         )
 
-        # ... после создания order и order.items ...
-
-        # Генерация PDF
-        context = {'order': order}
-        html_string = render_to_string('invoice.html', context)
-        html = HTML(string=html_string)
-        pdf_file = html.write_pdf()
-
-        # Сохраняем во временный файл
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_pdf:
-            temp_pdf.write(pdf_file)
-            temp_pdf_path = temp_pdf.name
-
-        # Отправляем email
-        try:
-            send_mail(
-                subject=f'Ваш счёт №{order.id}',
-                message=f'Здравствуйте!\n\nБлагодарим за заказ №{order.id} на сумму {order.total_price} ₽.\n\nСчёт во вложении.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[request.user.email],
-                fail_silently=False,
-                html_message=f"""
-                <p>Здравствуйте!</p>
-                <p>Благодарим за заказ <strong>№{order.id}</strong> на сумму <strong>{order.total_price} ₽</strong>.</p>
-                <p>Счёт во вложении.</p>
-                <p>С уважением,<br>Команда InetShop</p>
-                """
-            )
-
-            # Прикрепляем PDF
-            from django.core.mail import EmailMessage
-            email = EmailMessage(
-                subject=f'Ваш счёт №{order.id}',
-                body='Счёт во вложении.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[request.user.email],
-            )
-            email.attach('schet_{}.pdf'.format(order.id), pdf_file, 'application/pdf')
-            email.send()
-
-        except Exception as e:
-            # Логируем ошибку (можно использовать logging)
-            print(f"Ошибка отправки email: {e}")
-            # Но не прерываем заказ!
-
-
         # Создаём позиции заказа (с фиксацией цены!)
         for item in cart_items:
             OrderItem.objects.create(
@@ -115,8 +68,8 @@ class CreateOrderView(APIView):
                 total_price=item.product.price * item.quantity,
             )
             # Опционально: уменьшаем остаток на складе
-            # item.product.stock -= item.quantity
-            # item.product.save()
+            item.product.stock -= item.quantity
+            item.product.save()
 
         # Очищаем корзину
         cart_items.delete()
