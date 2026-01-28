@@ -1,0 +1,60 @@
+<!-- templates/product_detail.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div id="product">
+    <p class="text-muted">Загрузка товара...</p>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const productId = urlParams.get('id');
+
+if (!productId) {
+    document.getElementById('product').innerHTML = '<div class="alert alert-warning">Не указан ID товара</div>';
+    throw new Error('No product ID');
+}
+
+async function loadProduct() {
+    const res = await fetch(`/api/shop/products/`);
+    const data = await res.json();
+    const product = data.results.find(p => p.id == productId);
+
+    if (!product) {
+        document.getElementById('product').innerHTML = '<div class="alert alert-danger">Товар не найден</div>';
+        return;
+    }
+
+    document.getElementById('product').innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                ${product.image_url ? `<img src="${product.image_url}" class="img-fluid rounded shadow-sm" alt="${product.name}">` : '<div class="bg-light text-center p-5 rounded">Нет изображения</div>'}
+            </div>
+            <div class="col-md-6">
+                <h1>${product.name}</h1>
+                <p class="lead">${product.description}</p>
+                <h3 class="text-primary">${product.price} ₽</h3>
+                <p><strong>Остаток:</strong> ${product.stock} шт.</p>
+                <p><strong>Категория:</strong> ${product.category_name}</p>
+
+                <div class="mt-4">
+                    <button class="btn btn-success btn-lg me-2" onclick="addToCart(${product.id})">
+                        <i class="bi bi-cart-plus"></i> В корзину
+                    </button>
+                    <a href="/products/" class="btn btn-outline-secondary">
+                        ← Назад в каталог
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function addToCart(productId) {
+    alert('Добавление в корзину. Войдите в систему, чтобы использовать корзину.');
+    // Позже добавим JWT и API
+}
+
+loadProduct();
+</script>
+{% endblock %}

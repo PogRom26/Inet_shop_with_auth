@@ -1,0 +1,177 @@
+<!-- templates/products.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2><i class="bi bi-list-task"></i> Каталог товаров</h2>
+
+<form id="filterForm" class="mb-4 p-3 border rounded bg-light">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <input type="text" name="search" class="form-control" placeholder="Поиск по названию или описанию...">
+        </div>
+        <div class="col-md-3">
+            <select name="category" class="form-select">
+                <option value="">Все категории</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="min_price" class="form-control" placeholder="Цена от">
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="max_price" class="form-control" placeholder="до">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
+        </div>
+    </div>
+</form>
+
+<div id="products">
+    <p class="text-muted">Загрузка товаров...</p>
+</div>
+
+<!-- === Пагинация с номером страницы === -->
+<nav id="pagination" class="mt-4" style="display: none;">
+    <ul class="pagination justify-content-center align-items-center">
+        <li class="page-item" id="prev-li" style="display: none;">
+            <a class="page-link" href="#" id="prev-btn">Назад</a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link" id="page-info">Страница 1 из 1</span>
+        </li>
+        <li class="page-item" id="next-li" style="display: none;">
+            <a class="page-link" href="#" id="next-btn">Вперёд</a>
+        </li>
+    </ul>
+</nav>
+
+<script>
+let currentPage = 1;
+let currentParams = {};
+let totalPages = 1;
+
+// Загрузка категорий
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/shop/categories/');
+        if (!res.ok) throw new Error('Ошибка загрузки');
+        const categories = await res.json();
+        const select = document.querySelector('select[name="category"]');
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.slug;
+            option.textContent = cat.name;
+            select.appendChild(option);
+        });
+    } catch (err) {
+        console.warn('Категории не загружены:', err);
+    }
+}
+loadCategories();
+
+// Загрузка товаров
+async function loadProducts(params = {}) {
+    try {
+        const url = new URL('/api/shop/products/', window.location.origin);
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        url.searchParams.set('page', currentPage);
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Ошибка ${res.status}: ${res.statusText}`);
+
+        const data = await res.json();
+        const container = document.getElementById('products');
+
+        if (data.results.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">Товары не найдены.</div>';
+            document.getElementById('pagination').style.display = 'none';
+            return;
+        }
+
+        let html = `<p class="text-muted mb-3">Найдено: ${data.count} товар(ов)</p>`;
+        html += '<div class="row g-4">';
+
+        data.results.forEach(p => {
+            const img = p.image_url
+                ? `<img src="${p.image_url}" class="card-img-top" alt="${p.name}" style="height: 200px; object-fit: cover;">`
+                : '';
+
+            html += `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        ${img}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">${p.name}</h6>
+                            <p class="card-text text-muted small">${(p.description || '').substring(0, 100)}...</p>
+                            <div class="mt-auto">
+                                <h5 class="fw-bold text-primary">${p.price} ₽</h5>
+                                <a href="/product/?id=${p.id}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        // === Расчёт общего количества страниц ===
+        const pageSize = 10;
+        totalPages = Math.ceil(data.count / pageSize);
+
+        // === Обновление пагинации ===
+        const pagination = document.getElementById('pagination');
+        const prevLi = document.getElementById('prev-li');
+        const nextLi = document.getElementById('next-li');
+        const pageInfo = document.getElementById('page-info');
+
+        // Обновляем текст: "Страница 2 из 5"
+        pageInfo.textContent = `Страница ${currentPage} из ${totalPages}`;
+
+        // Кнопка "Назад"
+        if (data.previous) {
+            prevLi.style.display = 'block';
+            document.getElementById('prev-btn').onclick = (e) => {
+                e.preventDefault();
+                currentPage--;
+                loadProducts(currentParams);
+            };
+        } else {
+            prevLi.style.display = 'none';
+        }
+
+        // Кнопка "Вперёд"
+        if (data.next) {
+            nextLi.style.display = 'block';
+            document.getElementById('next-btn').onclick = (e) => {
+                e.preventDefault();
+                currentPage++;
+                loadProducts(currentParams);
+            };
+        } else {
+            nextLi.style.display = 'none';
+        }
+
+        pagination.style.display = 'flex';
+
+    } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">Ошибка: ${err.message}</div>`;
+        console.error(err);
+    }
+}
+
+// Фильтрация
+document.getElementById('filterForm').onsubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    currentParams = Object.fromEntries(formData);
+    currentPage = 1;
+    loadProducts(currentParams);
+};
+
+// Загрузка при старте
+loadProducts();
+</script>
+{% endblock %}

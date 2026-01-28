@@ -1,0 +1,786 @@
+[
+  {
+    "model": "shop.product",
+    "pk": 1,
+    "fields": {
+      "name": "iPhone 15 Pro",
+      "slug": "iphone-15-pro",
+      "category": 1,
+      "description": "Флагманский смартфон Apple с чипом A17 Pro, камерой 48 МП и титановым корпусом.",
+      "price": "999.99",
+      "stock": 25,
+      "image": "products/iphone15pro.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T10:00:00Z",
+      "updated_at": "2025-01-10T10:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 2,
+    "fields": {
+      "name": "Samsung Galaxy S24 Ultra",
+      "slug": "samsung-galaxy-s24-ultra",
+      "category": 1,
+      "description": "Топовый Android-смартфон с поддержкой S Pen, 200 МП камерой и 8 ГБ ОЗУ.",
+      "price": "1199.99",
+      "stock": 18,
+      "image": "products/galaxys24ultra.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T10:15:00Z",
+      "updated_at": "2025-01-10T10:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 3,
+    "fields": {
+      "name": "Google Pixel 8 Pro",
+      "slug": "google-pixel-8-pro",
+      "category": 1,
+      "description": "Смартфон с чистым Android, нейросетями Google и отличной камерой в ночном режиме.",
+      "price": "899.99",
+      "stock": 30,
+      "image": "products/pixel8pro.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T10:30:00Z",
+      "updated_at": "2025-01-10T10:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 4,
+    "fields": {
+      "name": "OnePlus 12",
+      "slug": "oneplus-12",
+      "category": 1,
+      "description": "Флагман с быстрой зарядкой 80 Вт, Snapdragon 8 Gen 3 и 120 Гц экраном.",
+      "price": "799.99",
+      "stock": 22,
+      "image": "products/oneplus12.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T10:45:00Z",
+      "updated_at": "2025-01-10T10:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 5,
+    "fields": {
+      "name": "Xiaomi 14 Pro",
+      "slug": "xiaomi-14-pro",
+      "category": 1,
+      "description": "Китайский флагман с Leica-камерой, быстрой зарядкой и MIUI 15.",
+      "price": "749.99",
+      "stock": 35,
+      "image": "products/xiaomi14pro.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T11:00:00Z",
+      "updated_at": "2025-01-10T11:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 6,
+    "fields": {
+      "name": "MacBook Pro 16\"",
+      "slug": "macbook-pro-16",
+      "category": 2,
+      "description": "Мощный ноутбук Apple на чипе M3 Max, 32 ГБ ОЗУ, 1 ТБ SSD.",
+      "price": "3499.99",
+      "stock": 12,
+      "image": "products/macbookpro16.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T11:15:00Z",
+      "updated_at": "2025-01-10T11:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 7,
+    "fields": {
+      "name": "Dell XPS 13",
+      "slug": "dell-xps-13",
+      "category": 2,
+      "description": "Ультрабук с дисплеем InfinityEdge, 11-го поколения Intel Core i7.",
+      "price": "1299.99",
+      "stock": 15,
+      "image": "products/dellxps13.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T11:30:00Z",
+      "updated_at": "2025-01-10T11:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 8,
+    "fields": {
+      "name": "HP Spectre x360",
+      "slug": "hp-spectre-x360",
+      "category": 2,
+      "description": "2-в-1 ноутбук с поворотным экраном, стилусом и Windows Hello.",
+      "price": "1499.99",
+      "stock": 10,
+      "image": "products/hpspectrex360.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T11:45:00Z",
+      "updated_at": "2025-01-10T11:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 9,
+    "fields": {
+      "name": "Lenovo ThinkPad X1 Carbon",
+      "slug": "lenovo-thinkpad-x1-carbon",
+      "category": 2,
+      "description": "Бизнес-ноутбук с прочным корпусом, клавиатурой TrackPoint и долгим временем работы.",
+      "price": "1799.99",
+      "stock": 8,
+      "image": "products/thinkpadx1.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T12:00:00Z",
+      "updated_at": "2025-01-10T12:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 10,
+    "fields": {
+      "name": "Asus ROG Zephyrus G14",
+      "slug": "asus-rog-zephyrus-g14",
+      "category": 2,
+      "description": "Игровой ноутбук с AMD Ryzen 9, RTX 4060 и компактным дизайном.",
+      "price": "1899.99",
+      "stock": 14,
+      "image": "products/rogzephyrus.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T12:15:00Z",
+      "updated_at": "2025-01-10T12:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 11,
+    "fields": {
+      "name": "AirPods Pro 2",
+      "slug": "airpods-pro-2",
+      "category": 3,
+      "description": "Беспроводные наушники Apple с шумоподавлением и Spatial Audio.",
+      "price": "249.99",
+      "stock": 50,
+      "image": "products/airpodspro2.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T12:30:00Z",
+      "updated_at": "2025-01-10T12:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 12,
+    "fields": {
+      "name": "Sony WH-1000XM5",
+      "slug": "sony-wh-1000xm5",
+      "category": 3,
+      "description": "Флагманские наушники с лучшим шумоподавлением и качеством звука.",
+      "price": "399.99",
+      "stock": 20,
+      "image": "products/sonywh1000xm5.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T12:45:00Z",
+      "updated_at": "2025-01-10T12:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 13,
+    "fields": {
+      "name": "Bose QuietComfort 45",
+      "slug": "bose-qc45",
+      "category": 3,
+      "description": "Удобные наушники с отличным шумоподавлением и до 24 часов работы.",
+      "price": "329.99",
+      "stock": 28,
+      "image": "products/boseqc45.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T13:00:00Z",
+      "updated_at": "2025-01-10T13:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 14,
+    "fields": {
+      "name": "Sennheiser Momentum 4",
+      "slug": "sennheiser-momentum-4",
+      "category": 3,
+      "description": "Наушники с превосходным звуком, 60 часами автономности и приложением Smart Control.",
+      "price": "299.99",
+      "stock": 17,
+      "image": "products/momentum4.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T13:15:00Z",
+      "updated_at": "2025-01-10T13:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 15,
+    "fields": {
+      "name": "Jabra Elite 85t",
+      "slug": "jabra-elite-85t",
+      "category": 3,
+      "description": "TWS-наушники с отличным шумоподавлением, регулируемым эквалайзером и удобной посадкой.",
+      "price": "199.99",
+      "stock": 33,
+      "image": "products/jabra85t.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T13:30:00Z",
+      "updated_at": "2025-01-10T13:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 16,
+    "fields": {
+      "name": "iPad Pro 12.9\"",
+      "slug": "ipad-pro-12-9",
+      "category": 4,
+      "description": "Планшет Apple с дисплеем Liquid Retina XDR, M2 чипом и поддержкой Apple Pencil.",
+      "price": "1099.99",
+      "stock": 11,
+      "image": "products/ipadpro129.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T13:45:00Z",
+      "updated_at": "2025-01-10T13:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 17,
+    "fields": {
+      "name": "Samsung Galaxy Tab S9",
+      "slug": "galaxy-tab-s9",
+      "category": 4,
+      "description": "Андроид-планшет с AMOLED-экраном 120 Гц, S Pen и 512 ГБ памяти.",
+      "price": "899.99",
+      "stock": 19,
+      "image": "products/galaxytabs9.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T14:00:00Z",
+      "updated_at": "2025-01-10T14:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 18,
+    "fields": {
+      "name": "Microsoft Surface Pro 9",
+      "slug": "surface-pro-9",
+      "category": 4,
+      "description": "2-в-1 устройство с Windows 11, Snapdragon X Elite и портом USB-C.",
+      "price": "1299.99",
+      "stock": 9,
+      "image": "products/surfacepro9.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T14:15:00Z",
+      "updated_at": "2025-01-10T14:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 19,
+    "fields": {
+      "name": "Lenovo Tab P11 Pro",
+      "slug": "lenovo-tab-p11-pro",
+      "category": 4,
+      "description": "Планшет с OLED-дисплеем 11.5\", четырьмя динамиками и длительным временем работы.",
+      "price": "599.99",
+      "stock": 24,
+      "image": "products/lenovotabp11.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T14:30:00Z",
+      "updated_at": "2025-01-10T14:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 20,
+    "fields": {
+      "name": "Amazon Fire HD 10",
+      "slug": "amazon-fire-hd-10",
+      "category": 4,
+      "description": "Бюджетный планшет с 10.1\" дисплеем, 32 ГБ памяти и Alexa.",
+      "price": "149.99",
+      "stock": 45,
+      "image": "products/firehd10.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T14:45:00Z",
+      "updated_at": "2025-01-10T14:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 21,
+    "fields": {
+      "name": "Apple Watch Series 9",
+      "slug": "apple-watch-series-9",
+      "category": 5,
+      "description": "Умные часы с новым чипом S9, улучшенным дисплеем и функцией обнаружения падений.",
+      "price": "399.99",
+      "stock": 26,
+      "image": "products/applewatch9.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T15:00:00Z",
+      "updated_at": "2025-01-10T15:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 22,
+    "fields": {
+      "name": "Samsung Galaxy Watch 6",
+      "slug": "galaxy-watch-6",
+      "category": 5,
+      "description": "Часы с круглым AMOLED-экраном, ECG, мониторингом сна и Wear OS.",
+      "price": "349.99",
+      "stock": 21,
+      "image": "products/galaxywatch6.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T15:15:00Z",
+      "updated_at": "2025-01-10T15:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 23,
+    "fields": {
+      "name": "Garmin Fenix 7",
+      "slug": "garmin-fenix-7",
+      "category": 5,
+      "description": "Спортивные часы с GPS, картами, мониторингом тренировок и 14 днями работы.",
+      "price": "799.99",
+      "stock": 7,
+      "image": "products/garminfenix7.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T15:30:00Z",
+      "updated_at": "2025-01-10T15:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 24,
+    "fields": {
+      "name": "Fitbit Sense 2",
+      "slug": "fitbit-sense-2",
+      "category": 5,
+      "description": "Умные часы с EDA-сенсором, стресс-мониторингом и длительным временем автономной работы.",
+      "price": "299.99",
+      "stock": 31,
+      "image": "products/fitbitsense2.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T15:45:00Z",
+      "updated_at": "2025-01-10T15:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 25,
+    "fields": {
+      "name": "Huawei Watch GT 4",
+      "slug": "huawei-watch-gt-4",
+      "category": 5,
+      "description": "Стильные часы с AMOLED-дисплеем, 100+ режимами тренировок и 14 днями работы.",
+      "price": "279.99",
+      "stock": 16,
+      "image": "products/huaweigt4.jpg",
+      "is_active": true,
+      "created_at": "2025-01-10T16:00:00Z",
+      "updated_at": "2025-01-10T16:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 26,
+    "fields": {
+      "name": "iPhone 14",
+      "slug": "iphone-14",
+      "category": 1,
+      "description": "Надёжный смартфон Apple с iOS 16 и камерой 12 МП.",
+      "price": "699.99",
+      "stock": 40,
+      "image": "products/iphone14.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T09:00:00Z",
+      "updated_at": "2025-01-11T09:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 27,
+    "fields": {
+      "name": "Google Pixel 7a",
+      "slug": "google-pixel-7a",
+      "category": 1,
+      "description": "Бюджетный флагман от Google с отличной камерой и 5 лет обновлений.",
+      "price": "499.99",
+      "stock": 38,
+      "image": "products/pixel7a.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T09:15:00Z",
+      "updated_at": "2025-01-11T09:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 28,
+    "fields": {
+      "name": "Nothing Phone (2)",
+      "slug": "nothing-phone-2",
+      "category": 1,
+      "description": "Смартфон с прозрачным корпусом, Glyph Interface и чистым Android.",
+      "price": "699.99",
+      "stock": 29,
+      "image": "products/nothingphone2.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T09:30:00Z",
+      "updated_at": "2025-01-11T09:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 29,
+    "fields": {
+      "name": "Asus Zenbook 14",
+      "slug": "asus-zenbook-14",
+      "category": 2,
+      "description": "Лёгкий ноутбук с OLED-дисплеем и до 16 часов работы.",
+      "price": "1199.99",
+      "stock": 13,
+      "image": "products/zenbook14.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T09:45:00Z",
+      "updated_at": "2025-01-11T09:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 30,
+    "fields": {
+      "name": "Acer Swift 3",
+      "slug": "acer-swift-3",
+      "category": 2,
+      "description": "Бюджетный ультрабук с Intel Core i5 и SSD 512 ГБ.",
+      "price": "699.99",
+      "stock": 27,
+      "image": "products/swift3.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T10:00:00Z",
+      "updated_at": "2025-01-11T10:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 31,
+    "fields": {
+      "name": "Bose SoundLink Revolve+",
+      "slug": "bose-soundlink-revolve-plus",
+      "category": 3,
+      "description": "Портативная колонка 360° с глубоким басом и водонепроницаемым корпусом.",
+      "price": "299.99",
+      "stock": 22,
+      "image": "products/soundlink.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T10:15:00Z",
+      "updated_at": "2025-01-11T10:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 32,
+    "fields": {
+      "name": "Apple iPad Air",
+      "slug": "apple-ipad-air",
+      "category": 4,
+      "description": "Планшет с дисплеем Liquid Retina, чипом M1 и поддержкой Apple Pencil 2.",
+      "price": "599.99",
+      "stock": 19,
+      "image": "products/ipadair.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T10:30:00Z",
+      "updated_at": "2025-01-11T10:30:00Z"
+    }
+    },
+  {
+    "model": "shop.product",
+    "pk": 34,
+    "fields": {
+      "name": "Apple Watch Ultra",
+      "slug": "apple-watch-ultra",
+      "category": 5,
+      "description": "Экстремальные умные часы Apple с титановым корпусом, GPS и до 36 часов работы.",
+      "price": "799.99",
+      "stock": 12,
+      "image": "products/applewatchultra.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T10:45:00Z",
+      "updated_at": "2025-01-11T10:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 35,
+    "fields": {
+      "name": "Motorola Edge 40",
+      "slug": "motorola-edge-40",
+      "category": 1,
+      "description": "Смартфон с AMOLED-экраном 144 Гц, водонепроницаемым корпусом и мощной камерой.",
+      "price": "599.99",
+      "stock": 24,
+      "image": "products/edge40.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T11:00:00Z",
+      "updated_at": "2025-01-11T11:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 36,
+    "fields": {
+      "name": "Microsoft Surface Laptop 5",
+      "slug": "surface-laptop-5",
+      "category": 2,
+      "description": "Элегантный ноутбук с сенсорным экраном, Windows 11 и длительным временем автономной работы.",
+      "price": "1399.99",
+      "stock": 10,
+      "image": "products/surfacelaptop5.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T11:15:00Z",
+      "updated_at": "2025-01-11T11:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 37,
+    "fields": {
+      "name": "Sony WF-1000XM5",
+      "slug": "sony-wf-1000xm5",
+      "category": 3,
+      "description": "TWS-наушники нового поколения с лучшим шумоподавлением и превосходным звуком.",
+      "price": "299.99",
+      "stock": 18,
+      "image": "products/wf1000xm5.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T11:30:00Z",
+      "updated_at": "2025-01-11T11:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 38,
+    "fields": {
+      "name": "Lenovo Yoga Tab 13",
+      "slug": "lenovo-yoga-tab-13",
+      "category": 4,
+      "description": "Планшет с дисплеем 13\", встроенной подставкой и мощными динамиками Harman Kardon.",
+      "price": "899.99",
+      "stock": 8,
+      "image": "products/yogatab13.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T11:45:00Z",
+      "updated_at": "2025-01-11T11:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 39,
+    "fields": {
+      "name": "Fitbit Charge 6",
+      "slug": "fitbit-charge-6",
+      "category": 5,
+      "description": "Фитнес-трекер с GPS, мониторингом сердца и Google-сервисами.",
+      "price": "159.99",
+      "stock": 40,
+      "image": "products/charge6.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T12:00:00Z",
+      "updated_at": "2025-01-11T12:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 40,
+    "fields": {
+      "name": "Samsung Galaxy Z Fold 5",
+      "slug": "galaxy-z-fold-5",
+      "category": 1,
+      "description": "Складной смартфон с большим внутренним экраном и S Pen поддержкой.",
+      "price": "1799.99",
+      "stock": 6,
+      "image": "products/zfold5.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T12:15:00Z",
+      "updated_at": "2025-01-11T12:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 41,
+    "fields": {
+      "name": "MacBook Air M2",
+      "slug": "macbook-air-m2",
+      "category": 2,
+      "description": "Ультратонкий ноутбук Apple с чипом M2, 13.6\" дисплеем и до 18 часов работы.",
+      "price": "1199.99",
+      "stock": 15,
+      "image": "products/macbookairm2.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T12:30:00Z",
+      "updated_at": "2025-01-11T12:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 42,
+    "fields": {
+      "name": "JBL Flip 6",
+      "slug": "jbl-flip-6",
+      "category": 3,
+      "description": "Компактная Bluetooth-колонка с мощным звуком и водонепроницаемым корпусом IP67.",
+      "price": "129.99",
+      "stock": 35,
+      "image": "products/flip6.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T12:45:00Z",
+      "updated_at": "2025-01-11T12:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 43,
+    "fields": {
+      "name": "iPad Mini 6",
+      "slug": "ipad-mini-6",
+      "category": 4,
+      "description": "Компактный планшет Apple с дисплеем Liquid Retina, A15 Bionic и поддержкой Apple Pencil.",
+      "price": "499.99",
+      "stock": 20,
+      "image": "products/ipadmini6.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T13:00:00Z",
+      "updated_at": "2025-01-11T13:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 44,
+    "fields": {
+      "name": "Garmin Venu 3",
+      "slug": "garmin-venu-3",
+      "category": 5,
+      "description": "Умные часы с AMOLED-дисплеем, мониторингом стресса и до 14 дней автономности.",
+      "price": "449.99",
+      "stock": 14,
+      "image": "products/venu3.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T13:15:00Z",
+      "updated_at": "2025-01-11T13:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 45,
+    "fields": {
+      "name": "OnePlus Nord 3",
+      "slug": "oneplus-nord-3",
+      "category": 1,
+      "description": "Средний класс с быстрой зарядкой 80 Вт, Dimensity 9000 и 120 Гц экраном.",
+      "price": "499.99",
+      "stock": 30,
+      "image": "products/nord3.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T13:30:00Z",
+      "updated_at": "2025-01-11T13:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 46,
+    "fields": {
+      "name": "Dell Inspiron 16",
+      "slug": "dell-inspiron-16",
+      "category": 2,
+      "description": "Мощный ноутбук для работы и учёбы с Intel Core i7 и дискретной видеокартой.",
+      "price": "1099.99",
+      "stock": 11,
+      "image": "products/inspiron16.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T13:45:00Z",
+      "updated_at": "2025-01-11T13:45:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 47,
+    "fields": {
+      "name": "AirPods Max",
+      "slug": "airpods-max",
+      "category": 3,
+      "description": "Накладные наушники Apple с активным шумоподавлением и Spatial Audio.",
+      "price": "549.99",
+      "stock": 9,
+      "image": "products/airpodsmax.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T14:00:00Z",
+      "updated_at": "2025-01-11T14:00:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 48,
+    "fields": {
+      "name": "Samsung Galaxy Tab S8",
+      "slug": "galaxy-tab-s8",
+      "category": 4,
+      "description": "Производительный Android-планшет с поддержкой S Pen и 128 ГБ памяти.",
+      "price": "799.99",
+      "stock": 17,
+      "image": "products/galaxytabs8.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T14:15:00Z",
+      "updated_at": "2025-01-11T14:15:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 49,
+    "fields": {
+      "name": "Huawei Band 8",
+      "slug": "huawei-band-8",
+      "category": 5,
+      "description": "Фитнес-браслет с OLED-дисплеем, мониторингом сна и до 14 дней работы.",
+      "price": "79.99",
+      "stock": 50,
+      "image": "products/band8.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T14:30:00Z",
+      "updated_at": "2025-01-11T14:30:00Z"
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 50,
+    "fields": {
+      "name": "Xiaomi Redmi Note 13 Pro",
+      "slug": "xiaomi-redmi-note-13-pro",
+      "category": 1,
+      "description": "Бюджетный смартфон с AMOLED-экраном, 200 МП камерой и быстрой зарядкой.",
+      "price": "399.99",
+      "stock": 42,
+      "image": "products/redminote13pro.jpg",
+      "is_active": true,
+      "created_at": "2025-01-11T14:45:00Z",
+      "updated_at": "2025-01-11T14:45:00Z"
+    }
+  }
+]

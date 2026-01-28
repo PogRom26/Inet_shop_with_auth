@@ -1,0 +1,85 @@
+<!-- templates/cart.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2><i class="bi bi-cart-fill"></i> Корзина</h2>
+
+<div id="cartItems">
+    <p>Загрузка корзины...</p>
+</div>
+
+<div id="total" class="mt-3 fw-bold"></div>
+
+<div class="mt-4">
+    <button id="checkoutBtn" class="btn btn-success">Оформить заказ</button>
+    <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
+</div>
+
+<script>
+const token = localStorage.getItem('access');
+if (!token) window.location.href = '/login/';
+
+async function loadCart() {
+    const res = await fetch('/api/shop/cart/', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const items = await res.json();
+
+    const container = document.getElementById('cartItems');
+    if (items.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Корзина пуста</div>';
+        document.getElementById('checkoutBtn').disabled = true;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="list-group">
+            ${items.map(item => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${item.product.name}</strong><br>
+                        <span class="text-muted">${item.product.price} ₽ × ${item.quantity}</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="updateItem(${item.id}, ${item.quantity + 1})">+</button>
+                        <button class="btn btn-sm btn-outline-secondary mx-1">${item.quantity}</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="updateItem(${item.id}, ${item.quantity - 1})">−</button>
+                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeItem(${item.id})">✕</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    const total = items.reduce((sum, item) => sum + (parseFloat(item.product.price) * item.quantity), 0);
+    document.getElementById('total').textContent = `Итого: ${total.toFixed(2)} ₽`;
+}
+
+async function updateItem(id, quantity) {
+    if (quantity <= 0) return removeItem(id);
+    await fetch(`/api/shop/cart/update/${id}/`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ quantity })
+    });
+    loadCart();
+}
+
+async function removeItem(id) {
+    await fetch(`/api/shop/cart/remove/${id}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    loadCart();
+}
+
+document.getElementById('checkoutBtn').onclick = () => {
+    window.location.href = '/orders-history/';
+};
+
+loadCart();
+</script>
+{% endblock %}

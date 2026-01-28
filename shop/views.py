@@ -1,56 +1,38 @@
-# shop/views.py
-from .models import Order, OrderItem
-from user.models import Address
-from rest_framework import status, permissions
+from django.shortcuts import render
+from rest_framework import status, permissions, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
-from .models import Product, CartItem
-from .serializers import CartItemSerializer
-
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 import tempfile
 
-from rest_framework import generics
-from .serializers import ProductSerializer
+from .models import Product, CartItem, Order, OrderItem, Category
+from .serializers import CartItemSerializer, ProductSerializer
 from .filters import ProductFilter
 from config.pagination import StandardResultsSetPagination
+from user.models import Address  # ← важно: добавлен импорт
 
-import django_filters
 
-from django.shortcuts import render
-
+# === API: Заказы ===
 class CreateOrderView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        # Получаем данные
         address_id = request.data.get('address_id')
         comment = request.data.get('comment', '')
 
-        # Проверяем адрес
         address_obj = get_object_or_404(Address, id=address_id, user=request.user)
-        address_text = (
-            f"{address_obj.full_name}, "
-            f"{address_obj.phone}, "
-            f"{address_obj.address_line}, "
-            f"{address_obj.city}, {address_obj.postal_code}, {address_obj.country}"
-        )
+        address_text = f"{address_obj.full_name}, {address_obj.phone}, {address_obj.address_line}, {address_obj.city}, {address_obj.postal_code}, {address_obj.country}"
 
-        # Получаем элементы корзины
         cart_items = CartItem.objects.filter(user=request.user)
         if not cart_items.exists():
-            return Response(
-                {"error": "Корзина пуста"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Корзина пуста"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Рассчитываем общую сумму
         total_price = sum(item.product.price * item.quantity for item in cart_items)
 
-        # Создаём заказ
         order = Order.objects.create(
             user=request.user,
             address=address_text,
@@ -58,7 +40,6 @@ class CreateOrderView(APIView):
             status='pending'
         )
 
-        # Создаём позиции заказа (с фиксацией цены!)
         for item in cart_items:
             OrderItem.objects.create(
                 order=order,
@@ -67,11 +48,9 @@ class CreateOrderView(APIView):
                 quantity=item.quantity,
                 total_price=item.product.price * item.quantity,
             )
-            # Опционально: уменьшаем остаток на складе
             item.product.stock -= item.quantity
             item.product.save()
 
-        # Очищаем корзину
         cart_items.delete()
 
         return Response({
@@ -81,7 +60,7 @@ class CreateOrderView(APIView):
             "status": order.status
         }, status=status.HTTP_201_CREATED)
 
-# Отмена заказа
+
 class CancelOrderView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -97,6 +76,7 @@ class CancelOrderView(APIView):
         return Response({"detail": "Заказ отменён"})
 
 
+# === API: Корзина ===
 class CartListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -118,14 +98,12 @@ class CartAddView(APIView):
         if quantity <= 0:
             return Response({'error': 'Количество должно быть больше 0'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Проверяем наличие на складе
         if quantity > product.stock:
             return Response(
                 {'error': f'Недостаточно товара на складе. Доступно: {product.stock}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Получаем или создаём элемент корзины
         cart_item, created = CartItem.objects.get_or_create(
             user=request.user,
             product=product,
@@ -178,13 +156,12 @@ class CartRemoveView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# === API: История заказов ===
 class UserOrdersView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         orders = Order.objects.filter(user=request.user).prefetch_related('items').order_by('-created_at')
-
-        # Применяем пагинацию
         paginator = StandardResultsSetPagination()
         paginated_orders = paginator.paginate_queryset(orders, request)
 
@@ -230,33 +207,21 @@ class RepeatOrderView(APIView):
 
     def post(self, request, order_id):
         order = get_object_or_404(Order, id=order_id, user=request.user)
-
         added_count = 0
         errors = []
 
         for item in order.items.all():
-            product = get_object_or_404(Product, id=item.product.id)  # Предполагаем, что OrderItem ссылается на Product
-            # Но у нас сейчас OrderItem — денормализованная копия
-            # Поэтому ищем по имени (или лучше добавить product_id в OrderItem)
-
-            # ⚠️ ВАЖНО: сейчас OrderItem не имеет связи с Product!
-            # Решение: либо добавить ForeignKey, либо искать по имени (ненадёжно)
-            # Лучше — модифицировать модель!
-
-            # Пока предположим, что мы можем найти товар по имени
             try:
                 product = Product.objects.get(name=item.product_name, is_active=True)
             except Product.DoesNotExist:
                 errors.append(f"Товар '{item.product_name}' больше не доступен")
                 continue
 
-            # Проверяем наличие
             available = min(item.quantity, product.stock)
             if available == 0:
                 errors.append(f"Товар '{item.product_name}' закончился")
                 continue
 
-            # Добавляем в корзину
             cart_item, created = CartItem.objects.get_or_create(
                 user=request.user,
                 product=product,
@@ -275,27 +240,63 @@ class RepeatOrderView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
-
+# === API: Каталог ===
 class ProductListView(generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True).select_related('category')
     serializer_class = ProductSerializer
-    filter_backends = [
-        django_filters.rest_framework.DjangoFilterBackend,
-        'rest_framework.filters.SearchFilter',
-    ]
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [permissions.AllowAny]  # ← обязательно!
 
 
+@api_view(['GET'])
+def category_list(request):
+    categories = Category.objects.filter(is_active=True).values('id', 'name', 'slug')
+    return Response(list(categories))
+
+
+# === HTML-страницы (явные вьюхи) ===
 def index(request):
+    """Главная страница"""
     return render(request, 'index.html')
 
+
 def products_page(request):
+    """Страница каталога товаров"""
     return render(request, 'products.html')
 
-def cart_page(request):
-    return render(request, 'cart.html')
+
+def product_detail_page(request):
+    """Страница деталей товара"""
+    return render(request, 'product_detail.html')
+
+
+def login_page(request):
+    """Страница входа"""
+    return render(request, 'login.html')
+
+
+def register_page(request):
+    """Страница регистрации"""
+    return render(request, 'register.html')
+
 
 def profile_page(request):
+    """Личный кабинет"""
     return render(request, 'profile.html')
+
+
+def cart_page(request):
+    """Корзина"""
+    return render(request, 'cart.html')
+
+
+def order_detail_page(request):
+    """Детали заказа"""
+    return render(request, 'order_detail.html')
+
+
+def orders_history_page(request):
+    """История заказов"""
+    return render(request, 'orders_history.html')

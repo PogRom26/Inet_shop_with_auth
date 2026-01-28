@@ -1,0 +1,63 @@
+<!-- templates/orders_history.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2><i class="bi bi-journal-text"></i> История заказов</h2>
+
+<div id="orders">
+    <p>Загрузка...</p>
+</div>
+
+<script>
+const token = localStorage.getItem('access');
+if (!token) window.location.href = '/login/';
+
+async function loadOrders() {
+    const res = await fetch('/api/shop/orders/', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    const container = document.getElementById('orders');
+    if (data.results.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Заказов пока нет</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            ${data.results.map(o => `
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Заказ №${o.id}</h6>
+                            <p class="mb-1">📅 ${new Date(o.created_at).toLocaleDateString()}</p>
+                            <p class="mb-1">💰 ${o.total_price} ₽</p>
+                            <p class="mb-1">📦 ${o.status}</p>
+                            <div class="d-flex gap-2">
+                                <a href="/order/?id=${o.id}" class="btn btn-sm btn-outline-info">Детали</a>
+                                <button class="btn btn-sm btn-outline-primary" onclick="repeatOrder(${o.id})">Повторить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+async function repeatOrder(orderId) {
+    if (!confirm("Повторить заказ?")) return;
+    const res = await fetch(`/api/shop/orders/${orderId}/repeat/`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+        alert("Товары добавлены в корзину!");
+        window.location.href = '/cart/';
+    }
+}
+
+loadOrders();
+</script>
+{% endblock %}

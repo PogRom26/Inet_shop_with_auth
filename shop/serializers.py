@@ -24,20 +24,23 @@ class CartItemSerializer(serializers.ModelSerializer):
     def get_total_price(self, obj):
         return obj.product.price * obj.quantity
 
-# shop/serializers.py
+
+from rest_framework import serializers
+from .models import Product
+
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    category_slug = serializers.SlugField(source='category.slug', read_only=True)
     image_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'slug', 'category', 'category_name',
+            'id', 'name', 'slug', 'category', 'category_name', 'category_slug',
             'description', 'price', 'stock', 'image_url', 'is_active'
         )
 
     def get_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        if obj.image and hasattr(obj.image, 'url'):
+            return obj.image.url
         return None
