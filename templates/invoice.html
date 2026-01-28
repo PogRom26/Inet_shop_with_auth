@@ -1,0 +1,55 @@
+<!-- templates/invoice.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Счёт №{{ order.id }}</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .total { font-weight: bold; font-size: 1.2em; color: #006600; }
+        .footer { margin-top: 30px; color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Счёт №{{ order.id }}</h1>
+    <p><strong>Дата:</strong> {{ order.created_at|date:"d.m.Y H:i" }}</p>
+    <p><strong>Клиент:</strong> {{ order.user.get_full_name|default:order.user.email }}</p>
+
+    <h2>Товары</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.price }} ₽</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.total_price }} ₽</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="total">Итого:</td>
+                <td class="total">{{ order.total_price }} ₽</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        <p>Спасибо за покупку!</p>
+        <p>Интернет-магазин "InetShop"</p>
+    </div>
+</body>
+</html>

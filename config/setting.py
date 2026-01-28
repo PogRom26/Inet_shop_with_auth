@@ -1,5 +1,10 @@
 # myproject/settings.py
 
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -15,6 +20,8 @@ INSTALLED_APPS = [
     'user',
     'shop',
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
+
 ]
 
 # Указываем кастомную модель User
@@ -28,6 +35,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+    ],
+
+    'DEFAULT_PAGINATION_CLASS': 'pagination.StandardResultsSetPagination',
 }
 
 # JWT настройки
@@ -37,5 +50,13 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,  # можно включить, если будешь использовать blacklist
+    'BLACKLIST_AFTER_ROTATION': False,
 }
+
+TEMPLATES = [
+     {
+         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+         'DIRS': [BASE_DIR / 'templates'],  # ← важно
+
+     }
+ ]
