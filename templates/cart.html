@@ -25,18 +25,51 @@
         <tbody id="cart-items"></tbody>
     </table>
 
+    <!-- Общая сумма -->
+    <div id="total-row" class="d-none text-end mt-3">
+        <strong>Итого: <span id="total-price">0</span> ₽</strong>
+    </div>
+
     <div id="cart-empty" class="alert alert-info d-none">
         Корзина пуста
     </div>
 
     <div class="d-flex justify-content-between mt-4">
         <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
-        <button id="create-order-btn" class="btn btn-success btn-lg" disabled>Оформить заказ</button>
+        <button id="create-order-btn" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#orderModal" disabled>
+            Оформить заказ
+        </button>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Оформление заказа</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Выберите адрес доставки:</strong></p>
+                    <div id="address-list">
+                        <p>Загрузка адресов...</p>
+                    </div>
+                    <hr>
+                    <p><strong>Комментарий к заказу:</strong></p>
+                    <textarea id="order-comment" class="form-control" rows="3" placeholder="Необязательно"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button id="confirm-order-btn" class="btn btn-success">Подтвердить заказ</button>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Ждём полной загрузки DOM
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -44,71 +77,174 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Элементы
     const loading = document.getElementById('loading');
     const errorDiv = document.getElementById('error-message');
     const table = document.getElementById('cart-table');
     const tbody = document.getElementById('cart-items');
     const emptyMsg = document.getElementById('cart-empty');
     const orderBtn = document.getElementById('create-order-btn');
+    const totalRow = document.getElementById('total-row');
+    const totalPriceEl = document.getElementById('total-price');
+
+    let cartItems = [];
 
     try {
         const res = await fetch('/api/shop/cart/', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!res.ok) {
-            if (res.status === 401) {
-                alert("Сессия истекла. Войдите снова.");
-                window.location.href = '/login/';
-                return;
-            }
-            throw new Error(`Ошибка: ${res.status}`);
-        }
-
-        const items = await res.json();
-        console.log("Корзина:", items);
+        if (!res.ok) throw new Error(`Ошибка загрузки корзины: ${res.status}`);
+        cartItems = await res.json();
 
         loading.classList.add('d-none');
 
-        if (items.length === 0) {
+        if (cartItems.length === 0) {
             emptyMsg.classList.remove('d-none');
             return;
         }
 
+        // Считаем сумму
+        const total = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        totalPriceEl.textContent = total.toFixed(2);
+        totalRow.classList.remove('d-none');
+
         table.classList.remove('d-none');
         orderBtn.disabled = false;
 
-        tbody.innerHTML = items.map(item => `
+        // Заполняем таблицу
+        tbody.innerHTML = cartItems.map(item => `
             <tr>
                 <td>
                     <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
                     ${item.product_name}
                 </td>
                 <td>${item.product_price} ₽</td>
-                <td>${item.quantity}</td>
+                <td>
+                    <div class="input-group input-group-sm w-auto">
+                        <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, -1)">−</button>
+                        <input type="text" id="qty-${item.id}" class="form-control text-center" value="${item.quantity}" style="max-width: 60px;" readonly>
+                        <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, 1)">+</button>
+                    </div>
+                </td>
                 <td>${item.total_price} ₽</td>
                 <td>
-                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">
-                        Удалить
-                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">Удалить</button>
                 </td>
             </tr>
         `).join('');
+
+        updateCartBadge(cartItems.length);
     } catch (err) {
-        console.error(err);
+        console.error("Ошибка:", err);
         errorDiv.textContent = 'Не удалось загрузить корзину';
         errorDiv.classList.remove('d-none');
     }
+
+    // Загрузка адресов
+    const addressList = document.getElementById('address-list');
+    try {
+        const addrRes = await fetch('/api/auth/addresses/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const addresses = await addrRes.json();
+
+        if (addresses.length === 0) {
+            addressList.innerHTML = '<p class="text-muted">Нет адресов. <a href="/profile/">Добавьте</a>.</p>';
+            document.getElementById('confirm-order-btn').disabled = true;
+            return;
+        }
+
+        addressList.innerHTML = addresses.map(addr => `
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="address" id="addr-${addr.id}" value="${addr.id}" ${addr.is_default ? 'checked' : ''}>
+                <label class="form-check-label" for="addr-${addr.id}">
+                    ${addr.full_name}, ${addr.phone}<br>
+                    <small>${addr.address_line}, ${addr.city}, ${addr.postal_code}</small>
+                </label>
+            </div>
+        `).join('');
+    } catch (err) {
+        addressList.innerHTML = '<p class="text-danger">Ошибка загрузки адресов.</p>';
+    }
+
+    // === КНОПКА "ПОДТВЕРДИТЬ ЗАКАЗ" ===
+    const confirmBtn = document.getElementById('confirm-order-btn');
+    if (!confirmBtn) {
+        console.error('Кнопка #confirm-order-btn не найдена');
+        return;
+    }
+
+    confirmBtn.addEventListener('click', async () => {
+        console.log('Кнопка "Подтвердить заказ" нажата'); // ← Проверка
+
+        const selectedAddr = document.querySelector('input[name="address"]:checked');
+        if (!selectedAddr) {
+            alert("Выберите адрес доставки");
+            return;
+        }
+
+        const address_id = selectedAddr.value;
+        const comment = document.getElementById('order-comment').value;
+
+        try {
+            const res = await fetch('/api/shop/create-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ address_id, comment })
+            });
+
+            const result = await res.json();
+            console.log('Ответ API:', result); // ← Смотрим, что пришло
+
+            if (res.ok && result.order_id) {
+                alert(`✅ Заказ №${result.order_id} оформлен!`);
+                window.location.href = `/order/${result.order_id}/`; // Переход
+            } else {
+                alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
+            }
+        } catch (err) {
+            console.error('Ошибка при оформлении:', err);
+            alert('Не удалось подключиться к серверу');
+        }
+    });
 });
 
-function removeFromCart(itemId) {
+// Функции вне DOMContentLoaded
+async function updateQuantity(itemId, delta) {
+    const input = document.getElementById(`qty-${itemId}`);
+    let qty = parseInt(input.value) || 1;
+    const newQty = qty + delta;
+
+    if (newQty < 1) return;
+
     const token = localStorage.getItem('access_token');
-    fetch(`/api/shop/cart/remove/${itemId}/`, {
+    const res = await fetch(`/api/shop/cart/update/${itemId}/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: newQty })
+    });
+
+    if (res.ok) {
+        location.reload();
+    } else {
+        alert('Ошибка при обновлении количества');
+    }
+}
+
+async function removeFromCart(itemId) {
+    const token = localStorage.getItem('access_token');
+    await fetch(`/api/shop/cart/remove/${itemId}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(() => location.reload())
-    .catch(() => alert('Ошибка'));
+    });
+    location.reload();
 }
 </script>
 {% endblock %}

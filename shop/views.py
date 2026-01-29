@@ -24,41 +24,34 @@ class CreateOrderView(APIView):
         address_id = request.data.get('address_id')
         comment = request.data.get('comment', '')
 
-        address_obj = get_object_or_404(Address, id=address_id, user=request.user)
-        address_text = f"{address_obj.full_name}, {address_obj.phone}, {address_obj.address_line}, {address_obj.city}, {address_obj.postal_code}, {address_obj.country}"
-
+        address = get_object_or_404(Address, id=address_id, user=request.user)
         cart_items = CartItem.objects.filter(user=request.user)
+
         if not cart_items.exists():
-            return Response({"error": "Корзина пуста"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Корзина пуста'}, status=400)
 
-        total_price = sum(item.product.price * item.quantity for item in cart_items)
-
+        # Создаём заказ
         order = Order.objects.create(
             user=request.user,
-            address=address_text,
-            total_price=total_price,
+            address=str(address),
+            total_price=sum(item.total_price for item in cart_items),
+            comment=comment,
             status='pending'
         )
 
+        # Переносим товары
         for item in cart_items:
             OrderItem.objects.create(
                 order=order,
-                product_name=item.product.name,
-                price=item.product.price,
+                product=item.product,
                 quantity=item.quantity,
-                total_price=item.product.price * item.quantity,
+                price=item.product.price
             )
             item.product.stock -= item.quantity
             item.product.save()
+            item.delete()
 
-        cart_items.delete()
-
-        return Response({
-            "detail": "Заказ успешно оформлен",
-            "order_id": order.id,
-            "total_price": total_price,
-            "status": order.status
-        }, status=status.HTTP_201_CREATED)
+        return Response({'order_id': order.id}, status=201)
 
 
 class CancelOrderView(APIView):
@@ -197,6 +190,7 @@ class OrderDetailView(APIView):
             "created_at": order.created_at,
             "status": order.status,
             "total_price": order.total_price,
+            "comment": order.comment,
             "address": order.address,
             "items": items,
         })

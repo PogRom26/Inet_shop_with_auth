@@ -1,42 +1,125 @@
-<!-- templates/order_detail.html -->
 {% extends "base.html" %}
 
+{% block title %}Заказ №{{ order_id }}{% endblock %}
+
 {% block content %}
-<div id="order"></div>
-<script>
-const urlParams = new URLSearchParams(window.location.search);
-const orderId = urlParams.get('id');
-const token = localStorage.getItem('access');
+    <h1><i class="bi bi-journal-check"></i> Заказ №<span id="order-id"></span></h1>
 
-if (!token) window.location.href = '/login/';
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем заказ...</p>
+    </div>
 
-async function loadOrder() {
-    const res = await fetch(`/api/shop/orders/${orderId}/`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const order = await res.json();
+    <div id="error-message" class="alert alert-danger d-none"></div>
 
-    document.getElementById('order').innerHTML = `
-        <h2>Заказ №${order.id}</h2>
-        <p><strong>Дата:</strong> ${new Date(order.created_at).toLocaleString()}</p>
-        <p><strong>Статус:</strong> ${order.status}</p>
-        <p><strong>Сумма:</strong> ${order.total_price} ₽</p>
-        <p><strong>Адрес:</strong> ${order.delivery_address?.address_line || '-'}</p>
-
-        <h5 class="mt-4">Товары:</h5>
-        <ul class="list-group">
-            ${order.items.map(i => `
-                <li class="list-group-item">
-                    ${i.product.name} × ${i.quantity} = ${(i.price * i.quantity).toFixed(2)} ₽
-                </li>
-            `).join('')}
-        </ul>
-
-        <div class="mt-4">
-            <a href="/orders-history/" class="btn btn-outline-secondary">← Назад</a>
+    <div id="order-container" class="d-none">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Статус: <span id="order-status" class="fw-bold"></span></h5>
+                <p><strong>Дата:</strong> <span id="order-date"></span></p>
+                <p><strong>Сумма:</strong> <span id="order-total"></span> ₽</p>
+                <p><strong>Комментарий:</strong> <span id="order-comment"></span></p>
+            </div>
         </div>
-    `;
+
+        <h4>Товары в заказе</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Товар</th>
+                    <th>Цена</th>
+                    <th>Кол-во</th>
+                    <th>Сумма</th>
+                </tr>
+            </thead>
+            <tbody id="order-items"></tbody>
+        </table>
+
+        <h4>Адрес доставки</h4>
+        <address id="order-address"></address>
+
+        <div id="cancel-section">
+            <button id="cancel-order-btn" class="btn btn-danger">Отменить заказ</button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    const path = window.location.pathname; // /order/5/
+    const orderId = path.split('/')[2];
+
+    if (!orderId || isNaN(orderId)) {
+        showError("Неверный ID заказа");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/shop/orders/${orderId}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+
+        const order = await res.json();
+
+        document.getElementById('order-id').textContent = order.id;
+        document.getElementById('order-status').textContent = order.status;
+        document.getElementById('order-date').textContent = new Date(order.created_at).toLocaleString();
+        document.getElementById('order-total').textContent = order.total_price;
+        document.getElementById('order-comment').textContent = order.comment || '—';
+        document.getElementById('order-address').textContent = order.address;
+
+        const itemsContainer = document.getElementById('order-items');
+        itemsContainer.innerHTML = order.items.map(item => `
+            <tr>
+                <td>${item.product_name}</td>
+                <td>${item.price} ₽</td>
+                <td>${item.quantity}</td>
+                <td>${item.total_price} ₽</td>
+            </tr>
+        `).join('');
+
+        if (order.status === 'pending') {
+            document.getElementById('cancel-order-btn').onclick = async () => {
+                if (confirm("Отменить заказ?")) {
+                    const cancelRes = await fetch(`/api/shop/cancel-order/${orderId}/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (cancelRes.ok) {
+                        alert("Заказ отменён");
+                        location.reload();
+                    } else {
+                        alert("Не удалось отменить");
+                    }
+                }
+            };
+        } else {
+            document.getElementById('cancel-section').innerHTML = `<p class="text-muted">Заказ нельзя отменить (статус: ${order.status})</p>`;
+        }
+
+        document.getElementById('loading').classList.add('d-none');
+        document.getElementById('order-container').classList.remove('d-none');
+    } catch (err) {
+        console.error(err);
+        showError("Не удалось загрузить заказ");
+    }
+});
+
+function showError(message) {
+    document.getElementById('loading').classList.add('d-none');
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('d-none');
 }
-loadOrder();
 </script>
 {% endblock %}
