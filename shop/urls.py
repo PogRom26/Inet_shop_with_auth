@@ -20,6 +20,6 @@ urlpatterns = [
 
     # === API: каталог ===
     path('products/', views.ProductListView.as_view(), name='product-list'),
-    path('product/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
+    path('products/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
 ]

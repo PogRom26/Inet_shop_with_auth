@@ -14,12 +14,10 @@
                 <a class="nav-link" href="/products/">Каталог</a>
                 <a class="nav-link" href="/cart/">Корзина</a>
                 <a class="nav-link" href="/orders-history/">История заказов</a>
-                <a class="nav-link" href="/profile/">Профиль</a>
             </div>
 
-            <!-- Блок, который будет меняться -->
-            <div id="auth-container" class="d-flex">
-                <!-- Кнопки будут добавлены через JS -->
+            <div id="auth-buttons" class="d-flex">
+                <!-- Управляется через JS -->
             </div>
         </div>
     </nav>
@@ -28,36 +26,35 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Единый скрипт для всей навигации -->
+    <!-- ✅ Ключевая строка: без неё extra_js не работает -->
+    {% block extra_js %}{% endblock %}
+
     <script>
-        function updateAuthUI() {
-            const container = document.getElementById('auth-container');
-            if (!container) return;
+        // Твой updateNavbar() и другие глобальные скрипты
+        function updateNavbar() {
+            const authButtons = document.getElementById('auth-buttons');
+            if (!authButtons) return;
 
             const token = localStorage.getItem('access_token');
-
-            // Очищаем контейнер
-            container.innerHTML = '';
+            authButtons.innerHTML = '';
 
             if (token) {
                 try {
-                    // Расшифровываем JWT
                     const payload = JSON.parse(atob(token.split('.')[1]));
                     const email = payload.email || 'Пользователь';
 
-                    container.innerHTML = `
+                    authButtons.innerHTML = `
                         <span class="navbar-text text-white me-3">📧 ${email}</span>
                         <button id="logout-btn" class="btn btn-danger">Выйти</button>
                     `;
 
-                    // Обработчик выхода
                     document.getElementById('logout-btn').addEventListener('click', () => {
                         localStorage.removeItem('access_token');
                         localStorage.removeItem('refresh_token');
                         window.location.href = '/';
                     });
                 } catch (e) {
-                    console.error("Ошибка парсинга токена", e);
+                    console.warn("Ошибка парсинга токена", e);
                     renderLoginButtons();
                 }
             } else {
@@ -66,18 +63,15 @@
         }
 
         function renderLoginButtons() {
-            const container = document.getElementById('auth-container');
-            container.innerHTML = `
+            const authButtons = document.getElementById('auth-buttons');
+            authButtons.innerHTML = `
                 <a href="/login/" class="btn btn-outline-light me-2">Вход</a>
                 <a href="/register/" class="btn btn-primary">Регистрация</a>
             `;
         }
 
-        // Выполняем при загрузке
-        document.addEventListener('DOMContentLoaded', updateAuthUI);
-
-        // Если токен изменился в другой вкладке
-        window.addEventListener('storage', updateAuthUI);
+        document.addEventListener('DOMContentLoaded', updateNavbar);
+        window.addEventListener('storage', updateNavbar);
     </script>
 </body>
 </html>

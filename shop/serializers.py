@@ -5,24 +5,20 @@ from .models import CartItem, Product, Category
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
-    product_image = serializers.SerializerMethodField(read_only=True)
-    total_price = serializers.SerializerMethodField(read_only=True)
+    total_price = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
-        fields = (
-            'id', 'product', 'product_name', 'product_price',
-            'product_image', 'quantity', 'total_price'
-        )
-
-    def get_product_image(self, obj):
-        request = self.context.get('request')
-        if obj.product.image:
-            return request.build_absolute_uri(obj.product.image.url) if request else obj.product.image.url
-        return None
+        fields = ('id', 'product', 'product_name', 'product_price', 'quantity', 'total_price', 'image_url')
 
     def get_total_price(self, obj):
         return obj.product.price * obj.quantity
+
+    def get_image_url(self, obj):
+        if obj.product.image and hasattr(obj.product.image, 'url'):
+            return obj.product.image.url
+        return '/static/img/no-image.png'
 
 
 from rest_framework import serializers

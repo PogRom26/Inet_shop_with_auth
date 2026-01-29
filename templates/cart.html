@@ -1,87 +1,114 @@
-<!-- templates/cart.html -->
 {% extends "base.html" %}
 
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<h2><i class="bi bi-cart-fill"></i> Корзина</h2>
+    <h1><i class="bi bi-cart"></i> Ваша корзина</h1>
 
-<div id="cartItems">
-    <p>Загрузка корзины...</p>
-</div>
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем корзину...</p>
+    </div>
 
-<div id="total" class="mt-3 fw-bold"></div>
+    <div id="error-message" class="alert alert-danger d-none"></div>
 
-<div class="mt-4">
-    <button id="checkoutBtn" class="btn btn-success">Оформить заказ</button>
-    <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
-</div>
+    <table id="cart-table" class="table table-hover d-none">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody id="cart-items"></tbody>
+    </table>
 
+    <div id="cart-empty" class="alert alert-info d-none">
+        Корзина пуста
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
+        <button id="create-order-btn" class="btn btn-success btn-lg" disabled>Оформить заказ</button>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-const token = localStorage.getItem('access');
-if (!token) window.location.href = '/login/';
-
-async function loadCart() {
-    const res = await fetch('/api/shop/cart/', {
-        headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const items = await res.json();
-
-    const container = document.getElementById('cartItems');
-    if (items.length === 0) {
-        container.innerHTML = '<div class="alert alert-info">Корзина пуста</div>';
-        document.getElementById('checkoutBtn').disabled = true;
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
         return;
     }
 
-    container.innerHTML = `
-        <div class="list-group">
-            ${items.map(item => `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${item.product.name}</strong><br>
-                        <span class="text-muted">${item.product.price} ₽ × ${item.quantity}</span>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="updateItem(${item.id}, ${item.quantity + 1})">+</button>
-                        <button class="btn btn-sm btn-outline-secondary mx-1">${item.quantity}</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="updateItem(${item.id}, ${item.quantity - 1})">−</button>
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeItem(${item.id})">✕</button>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error-message');
+    const table = document.getElementById('cart-table');
+    const tbody = document.getElementById('cart-items');
+    const emptyMsg = document.getElementById('cart-empty');
+    const orderBtn = document.getElementById('create-order-btn');
 
-    const total = items.reduce((sum, item) => sum + (parseFloat(item.product.price) * item.quantity), 0);
-    document.getElementById('total').textContent = `Итого: ${total.toFixed(2)} ₽`;
-}
+    try {
+        const res = await fetch('/api/shop/cart/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-async function updateItem(id, quantity) {
-    if (quantity <= 0) return removeItem(id);
-    await fetch(`/api/shop/cart/update/${id}/`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({ quantity })
-    });
-    loadCart();
-}
+        if (!res.ok) {
+            if (res.status === 401) {
+                alert("Сессия истекла. Войдите снова.");
+                window.location.href = '/login/';
+                return;
+            }
+            throw new Error(`Ошибка: ${res.status}`);
+        }
 
-async function removeItem(id) {
-    await fetch(`/api/shop/cart/remove/${id}/`, {
+        const items = await res.json();
+        console.log("Корзина:", items);
+
+        loading.classList.add('d-none');
+
+        if (items.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            return;
+        }
+
+        table.classList.remove('d-none');
+        orderBtn.disabled = false;
+
+        tbody.innerHTML = items.map(item => `
+            <tr>
+                <td>
+                    <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
+                    ${item.product_name}
+                </td>
+                <td>${item.product_price} ₽</td>
+                <td>${item.quantity}</td>
+                <td>${item.total_price} ₽</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">
+                        Удалить
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
+        errorDiv.classList.remove('d-none');
+    }
+});
+
+function removeFromCart(itemId) {
+    const token = localStorage.getItem('access_token');
+    fetch(`/api/shop/cart/remove/${itemId}/`, {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + token }
-    });
-    loadCart();
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(() => location.reload())
+    .catch(() => alert('Ошибка'));
 }
-
-document.getElementById('checkoutBtn').onclick = () => {
-    window.location.href = '/orders-history/';
-};
-
-loadCart();
 </script>
 {% endblock %}

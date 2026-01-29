@@ -1,50 +1,143 @@
 {% extends "base.html" %}
 
-{% block title %}Детали товара{% endblock %}
+{% block title %}{{ product_name|default:"Товар" }}{% endblock %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-md-6">
-            <img id="product-image" src="" class="img-fluid rounded" alt="Товар">
-        </div>
-        <div class="col-md-6">
-            <h1 id="product-name"></h1>
-            <p id="product-price" class="text-success fs-3 fw-bold"></p>
-            <p id="product-description"></p>
-            <button id="add-to-cart" class="btn btn-success">В корзину</button>
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем товар...</p>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none"></div>
+
+    <div id="product-container" class="d-none">
+        <div class="row">
+            <div class="col-md-6">
+                <img id="product-image" src="/static/img/no-image.png"
+                     class="img-fluid rounded" alt="Товар"
+                     style="max-height: 400px; object-fit: cover;">
+            </div>
+            <div class="col-md-6">
+                <h1 id="product-name">—</h1>
+                <p id="product-price" class="text-success fs-3 fw-bold">—</p>
+                <p id="product-description" class="text-muted">—</p>
+
+                <!-- Поле количества -->
+                <div class="mb-3">
+                    <label for="quantity">Количество:</label>
+                    <input type="number" id="quantity" class="form-control w-auto" value="1" min="1" max="10">
+                </div>
+
+                <!-- Кнопка "В корзину" -->
+                <button id="add-to-cart" class="btn btn-success btn-lg">
+                    <i class="bi bi-cart-plus"></i> В корзину
+                </button>
+            </div>
         </div>
     </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-    const path = window.location.pathname;
-    const productId = path.split('/')[2]; // /product/50/ → [2] = 50
+    document.addEventListener('DOMContentLoaded', async () => {
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error-message');
+        const container = document.getElementById('product-container');
+        const addToCartBtn = document.getElementById('add-to-cart');
 
-    if (!productId) {
-        document.getElementById('product-name').textContent = 'Товар не найден';
-        return;
+        // Извлекаем ID товара из URL: /product/50/
+        const path = window.location.pathname;
+        const parts = path.split('/').filter(Boolean);
+        const productId = parts[1];
+
+        if (!productId || isNaN(productId)) {
+            showError("Неверный ID товара");
+            return;
+        }
+
+        try {
+            console.log(`Загружаем товар ${productId}...`);
+            const response = await fetch(`/api/shop/products/${productId}/`);
+
+            if (!response.ok) throw new Error(`Ошибка ${response.status}`);
+
+            const product = await response.json();
+            console.log("Товар:", product);
+
+            // Заполняем данные
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-price').textContent = `${product.price} ₽`;
+            document.getElementById('product-description').textContent = product.description;
+
+            const img = document.getElementById('product-image');
+            img.src = product.image_url || '/static/img/no-image.png';
+            img.onerror = () => { img.src = '/static/img/no-image.png'; };
+
+            // Показываем карточку
+            loading.classList.add('d-none');
+            container.classList.remove('d-none');
+
+            // === Обработчик кнопки "В корзину" ===
+            addToCartBtn.addEventListener('click', async () => {
+                const token = localStorage.getItem('access_token');
+                const quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+                if (!token) {
+                    // ❌ Не авторизован
+                    alert("Сначала войдите в аккаунт");
+                    window.location.href = "/login/";
+                    return;
+                }
+
+                if (quantity < 1) {
+                    alert("Количество должно быть больше 0");
+                    return;
+                }
+
+                try {
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.innerHTML = 'Добавляем...';
+
+                    const res = await fetch('/api/shop/cart/add/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            product_id: productId,
+                            quantity: quantity
+                        })
+                    });
+
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        alert(`✅ ${product.name} добавлен в корзину`);
+                    } else if (res.status === 400 && result.error) {
+                        alert(`⚠️ ${result.error}`);
+                    } else {
+                        alert("❌ Ошибка при добавлении в корзину");
+                    }
+                } catch (err) {
+                    console.error("Ошибка:", err);
+                    alert("Не удалось подключиться к серверу");
+                } finally {
+                    addToCartBtn.disabled = false;
+                    addToCartBtn.innerHTML = '<i class="bi bi-cart-plus"></i> В корзину';
+                }
+            });
+        } catch (err) {
+            console.error("Ошибка:", err);
+            showError("Не удалось загрузить товар. Проверь консоль.");
+        }
+    });
+
+    function showError(message) {
+        document.getElementById('loading').classList.add('d-none');
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('d-none');
     }
-
-    try {
-        const res = await fetch(`/api/shop/products/${productId}/`);
-        if (!res.ok) throw new Error('Товар не найден');
-
-        const product = await res.json();
-
-        document.getElementById('product-name').textContent = product.name;
-        document.getElementById('product-price').textContent = `${product.price} ₽`;
-        document.getElementById('product-description').textContent = product.description || 'Описание отсутствует';
-        document.getElementById('product-image').src = product.image_url;
-
-        document.getElementById('add-to-cart').onclick = () => {
-            alert(`Товар "${product.name}" добавлен в корзину`);
-        };
-    } catch (err) {
-        document.getElementById('product-name').textContent = 'Ошибка загрузки товара';
-        console.error(err);
-    }
-});
 </script>
 {% endblock %}

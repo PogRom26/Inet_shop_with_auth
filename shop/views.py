@@ -86,6 +86,8 @@ class CartListView(APIView):
         return Response(serializer.data)
 
 
+from rest_framework import status
+
 class CartAddView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -97,10 +99,9 @@ class CartAddView(APIView):
 
         if quantity <= 0:
             return Response({'error': 'Количество должно быть больше 0'}, status=status.HTTP_400_BAD_REQUEST)
-
         if quantity > product.stock:
             return Response(
-                {'error': f'Недостаточно товара на складе. Доступно: {product.stock}'},
+                {'error': f'Недостаточно на складе. Максимум: {product.stock}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -114,15 +115,14 @@ class CartAddView(APIView):
             new_quantity = cart_item.quantity + quantity
             if new_quantity > product.stock:
                 return Response(
-                    {'error': f'Нельзя добавить столько. Максимум: {product.stock - cart_item.quantity} шт.'},
+                    {'error': f'Можно добавить ещё: {product.stock - cart_item.quantity}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             cart_item.quantity = new_quantity
             cart_item.save()
 
         serializer = CartItemSerializer(cart_item)
-        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
-
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class CartUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
