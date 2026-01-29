@@ -1,6 +1,6 @@
 # shop/serializers.py
 from rest_framework import serializers
-from .models import CartItem, Product
+from .models import CartItem, Product, Category
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -44,3 +44,8 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.image and hasattr(obj.image, 'url'):
             return obj.image.url
         return None
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name', 'slug')

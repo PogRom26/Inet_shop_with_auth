@@ -1,7 +1,5 @@
-from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from rest_framework import status, permissions, generics
-from rest_framework.permissions import AllowAny
+from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -12,10 +10,10 @@ from django.conf import settings
 import tempfile
 
 from .models import Product, CartItem, Order, OrderItem, Category
-from .serializers import CartItemSerializer, ProductSerializer
+from .serializers import CartItemSerializer, ProductSerializer, CategorySerializer
 from .filters import ProductFilter
 from config.pagination import StandardResultsSetPagination
-from user.models import Address  # ← важно: добавлен импорт
+from user.models import Address
 
 
 # === API: Заказы ===
@@ -95,7 +93,7 @@ class CartAddView(APIView):
         product_id = request.data.get('product_id')
         quantity = int(request.data.get('quantity', 1))
 
-        product = get_object_or_404(Product, id=product_id, is_active=True)
+        product = get_object_or_404(Product, id=product_id, available=True)
 
         if quantity <= 0:
             return Response({'error': 'Количество должно быть больше 0'}, status=status.HTTP_400_BAD_REQUEST)
@@ -214,7 +212,7 @@ class RepeatOrderView(APIView):
 
         for item in order.items.all():
             try:
-                product = Product.objects.get(name=item.product_name, is_active=True)
+                product = Product.objects.get(name=item.product_name, available=True)
             except Product.DoesNotExist:
                 errors.append(f"Товар '{item.product_name}' больше не доступен")
                 continue
@@ -244,44 +242,59 @@ class RepeatOrderView(APIView):
 
 # === API: Каталог ===
 class ProductListView(generics.ListAPIView):
-    queryset = Product.objects.filter(is_active=True).select_related('category')
+    queryset = Product.objects.filter(available=True)
     serializer_class = ProductSerializer
-    filterset_class = ProductFilter
-    search_fields = ['name', 'description']
+    permission_classes = [permissions.AllowAny]
     pagination_class = StandardResultsSetPagination
+    filterset_class = ProductFilter
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_paginated_response(self, data):
+        return Response({
+            'count': self.paginator.page.paginator.count,
+            'total_pages': self.paginator.page.paginator.num_pages,
+            'current_page': self.paginator.page.number,
+            'results': data,
+            'links': {
+                'next': self.paginator.get_next_link(),
+                'previous': self.paginator.get_previous_link(),
+            }
+        })
+
+
+class CategoryListView(generics.ListAPIView):
+    queryset = Category.objects.filter(is_active=True)
+    serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def category_list(request):
-    categories = Category.objects.filter(is_active=True).values('id', 'name', 'slug')
-    return JsonResponse(list(categories), safe=False)
-
-
-# === HTML-страницы (явные вьюхи) ===
+# === HTML-страницы ===
 def index(request):
-    """Главная страница"""
     return render(request, 'index.html')
 
 
 def products_page(request):
-    """Страница каталога товаров"""
     return render(request, 'products.html')
 
 
-def product_detail_page(request):
-    """Страница деталей товара"""
+def product_detail_page(request, product_id):
     return render(request, 'product_detail.html')
 
 
 def login_page(request):
-    """Страница входа"""
     return render(request, 'login.html')
 
 
 def register_page(request):
-    """Страница регистрации"""
     return render(request, 'register.html')
 
 
@@ -297,8 +310,7 @@ def cart_page(request):
     return render(request, 'cart.html')
 
 
-def order_detail_page(request):
-    """Детали заказа"""
+def order_detail_page(request, order_id):
     return render(request, 'order_detail.html')
 
 

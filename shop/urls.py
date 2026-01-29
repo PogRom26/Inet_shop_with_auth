@@ -21,5 +21,5 @@ urlpatterns = [
     # === API: каталог ===
     path('register/', RegisterView.as_view(), name='register'),
     path('products/', views.ProductListView.as_view(), name='product-list'),
-    path('categories/', views.category_list, name='category-list'),
+    path('categories/', views.CategoryListView.as_view(), name='category-list'),
 ]

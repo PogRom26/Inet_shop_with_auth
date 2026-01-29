@@ -51,20 +51,20 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     const div = document.getElementById('result');
 
     if (res.ok) {
-        localStorage.setItem('access', result.access);
-        localStorage.setItem('refresh', result.refresh);
-        div.innerHTML = `
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle"></i> Успешный вход! Перенаправление...
-            </div>
-        `;
-        setTimeout(() => window.location.href = '/profile/', 1000);
+        // ✅ Сохраняем с правильным ключом
+        localStorage.setItem('access_token', result.access);
+        localStorage.setItem('refresh_token', result.refresh);
+
+        div.innerHTML = '<div class="alert alert-success">Успешный вход! Перенаправление...</div>';
+
+        // ✅ Вызываем обновление навигации
+        if (window.updateNavbar) {
+            window.updateNavbar();
+        }
+
+        setTimeout(() => window.location.href = '/', 1000);
     } else {
-        div.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> Ошибка: ${JSON.stringify(result)}
-            </div>
-        `;
+        div.innerHTML = `<div class="alert alert-danger">Ошибка: ${JSON.stringify(result)}</div>`;
     }
 };
 </script>

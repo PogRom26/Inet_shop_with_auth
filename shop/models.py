@@ -31,6 +31,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField('Остаток на складе')
     image = models.ImageField('Изображение', upload_to='products/', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
+    available = models.BooleanField("Доступен", default=True)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
 
