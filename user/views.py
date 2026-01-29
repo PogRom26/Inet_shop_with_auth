@@ -95,3 +95,43 @@ class LogoutView(APIView):
             return Response({"detail": "Вы успешно вышли из системы."}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": "Неверный токен."}, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['email'] = self.user.email
+        data['user_id'] = self.user.id
+        return data
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone': user.phone,
+        })
+
+    def patch(self, request):
+        user = request.user
+        user.first_name = request.data.get('first_name', user.first_name)
+        user.last_name = request.data.get('last_name', user.last_name)
+        user.save()
+        return Response({'detail': 'Данные обновлены'})

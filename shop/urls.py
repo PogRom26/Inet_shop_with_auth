@@ -19,7 +19,7 @@ urlpatterns = [
     path('orders/<int:order_id>/repeat/', views.RepeatOrderView.as_view(), name='repeat-order'),
 
     # === API: каталог ===
-    path('register/', RegisterView.as_view(), name='register'),
     path('products/', views.ProductListView.as_view(), name='product-list'),
+    path('product/<int:pk>/', views.ProductDetailView.as_view(), name='product-detail'),
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
 ]

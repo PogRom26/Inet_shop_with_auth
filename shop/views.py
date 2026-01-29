@@ -277,6 +277,13 @@ class CategoryListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
 
+class ProductDetailView(generics.RetrieveAPIView):
+    queryset = Product.objects.filter(available=True)
+    serializer_class = ProductSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'pk'
+
+
 # === HTML-страницы ===
 def index(request):
     return render(request, 'index.html')

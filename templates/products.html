@@ -112,8 +112,8 @@ async function loadProducts(params = {}) {
                             <p class="card-text text-muted small">${(p.description || '').substring(0, 100)}...</p>
                             <div class="mt-auto">
                                 <h5 class="fw-bold text-primary">${p.price} ₽</h5>
-                                <a href="/product/?id=${p.id}" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-eye"></i> Подробнее
+                                <a href="/product/${p.id}/" class="btn btn-outline-success mt-auto">Подробнее</a>
+                                    <i class="bi bi-eye"></i>
                                 </a>
                             </div>
                         </div>

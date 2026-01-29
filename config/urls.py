@@ -16,15 +16,14 @@ from shop.views import (
 )
 
 urlpatterns = [
-    # === Админка ===
-    path('admin/', admin.site.urls),  # 🔥 Обязательно!
+    path('admin/', admin.site.urls),
 
     # === API: Авторизация и JWT ===
     path('api/auth/', include('user.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # === API: Магазин ===
+    # === API: Магазин (только JSON) ===
     path('api/shop/', include('shop.urls')),
 
     # === API: Документация ===
@@ -34,7 +33,7 @@ urlpatterns = [
     # === HTML-страницы ===
     path('', index, name='home'),
     path('products/', products_page, name='products'),
-    path('product/<int:product_id>/', product_detail_page, name='product_detail'),
+    path('product/<int:product_id>/', product_detail_page, name='product_detail'),  # ← HTML-страница
     path('login/', login_page, name='login'),
     path('register/', register_page, name='register'),
     path('profile/', profile_page, name='profile'),

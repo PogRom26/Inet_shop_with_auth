@@ -1,60 +1,50 @@
-<!-- templates/product_detail.html -->
 {% extends "base.html" %}
 
+{% block title %}Детали товара{% endblock %}
+
 {% block content %}
-<div id="product">
-    <p class="text-muted">Загрузка товара...</p>
-</div>
+    <div class="row">
+        <div class="col-md-6">
+            <img id="product-image" src="" class="img-fluid rounded" alt="Товар">
+        </div>
+        <div class="col-md-6">
+            <h1 id="product-name"></h1>
+            <p id="product-price" class="text-success fs-3 fw-bold"></p>
+            <p id="product-description"></p>
+            <button id="add-to-cart" class="btn btn-success">В корзину</button>
+        </div>
+    </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const urlParams = new URLSearchParams(window.location.search);
-const productId = urlParams.get('id');
+document.addEventListener('DOMContentLoaded', async () => {
+    const path = window.location.pathname;
+    const productId = path.split('/')[2]; // /product/50/ → [2] = 50
 
-if (!productId) {
-    document.getElementById('product').innerHTML = '<div class="alert alert-warning">Не указан ID товара</div>';
-    throw new Error('No product ID');
-}
-
-async function loadProduct() {
-    const res = await fetch(`/api/shop/products/`);
-    const data = await res.json();
-    const product = data.results.find(p => p.id == productId);
-
-    if (!product) {
-        document.getElementById('product').innerHTML = '<div class="alert alert-danger">Товар не найден</div>';
+    if (!productId) {
+        document.getElementById('product-name').textContent = 'Товар не найден';
         return;
     }
 
-    document.getElementById('product').innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                ${product.image_url ? `<img src="${product.image_url}" class="img-fluid rounded shadow-sm" alt="${product.name}">` : '<div class="bg-light text-center p-5 rounded">Нет изображения</div>'}
-            </div>
-            <div class="col-md-6">
-                <h1>${product.name}</h1>
-                <p class="lead">${product.description}</p>
-                <h3 class="text-primary">${product.price} ₽</h3>
-                <p><strong>Остаток:</strong> ${product.stock} шт.</p>
-                <p><strong>Категория:</strong> ${product.category_name}</p>
+    try {
+        const res = await fetch(`/api/shop/products/${productId}/`);
+        if (!res.ok) throw new Error('Товар не найден');
 
-                <div class="mt-4">
-                    <button class="btn btn-success btn-lg me-2" onclick="addToCart(${product.id})">
-                        <i class="bi bi-cart-plus"></i> В корзину
-                    </button>
-                    <a href="/products/" class="btn btn-outline-secondary">
-                        ← Назад в каталог
-                    </a>
-                </div>
-            </div>
-        </div>
-    `;
-}
+        const product = await res.json();
 
-async function addToCart(productId) {
-    alert('Добавление в корзину. Войдите в систему, чтобы использовать корзину.');
-    // Позже добавим JWT и API
-}
+        document.getElementById('product-name').textContent = product.name;
+        document.getElementById('product-price').textContent = `${product.price} ₽`;
+        document.getElementById('product-description').textContent = product.description || 'Описание отсутствует';
+        document.getElementById('product-image').src = product.image_url;
 
-loadProduct();
+        document.getElementById('add-to-cart').onclick = () => {
+            alert(`Товар "${product.name}" добавлен в корзину`);
+        };
+    } catch (err) {
+        document.getElementById('product-name').textContent = 'Ошибка загрузки товара';
+        console.error(err);
+    }
+});
 </script>
 {% endblock %}
