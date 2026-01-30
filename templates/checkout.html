@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block content %}
+    <h1><i class="bi bi-journal-check"></i> Оформление заказа</h1>
+
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем корзину...</p>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none"></div>
+
+    <!-- Корзина -->
+    <table id="cart-table" class="table table-hover d-none">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+            </tr>
+        </thead>
+        <tbody id="cart-items"></tbody>
+    </table>
+
+    <div id="cart-empty" class="alert alert-info d-none">
+        Корзина пуста
+    </div>
+
+    <div id="total-row" class="d-none text-end mt-3">
+        <strong>Итого: <span id="total-price">0</span> ₽</strong>
+    </div>
+
+    <hr class="my-5">
+
+    <!-- Форма заказа -->
+    <h4>Способ получения</h4>
+    <div class="form-check mb-4">
+        <input class="form-check-input" type="radio" name="delivery_type" id="delivery" value="delivery" checked>
+        <label class="form-check-label" for="delivery">Доставка</label>
+    </div>
+    <div class="form-check mb-4">
+        <input class="form-check-input" type="radio" name="delivery_type" id="pickup" value="pickup">
+        <label class="form-check-label" for="pickup">Самовывоз (г. Москва, ул. Примерная, д. 1)</label>
+    </div>
+
+    <!-- Адрес доставки -->
+    <div id="address-section">
+        <h5>Адрес доставки</h5>
+        <div id="address-list">
+            <p>Загрузка адресов...</p>
+        </div>
+        <div id="manual-address" class="d-none mt-3">
+            <p><strong>Или введите вручную:</strong></p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" id="full_name" class="form-control" placeholder="ФИО">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" id="phone" class="form-control" placeholder="Телефон">
+                </div>
+                <div class="col-12">
+                    <input type="text" id="address_line" class="form-control" placeholder="Улица, дом, квартира">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" id="city" class="form-control" placeholder="Город" value="Москва">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" id="postal_code" class="form-control" placeholder="Индекс">
+                </div>
+            </div>
+        </div>
+        <button id="add-new-address" class="btn btn-sm btn-outline-primary d-none mt-2">+ Добавить новый адрес</button>
+    </div>
+
+    <div class="mt-4">
+        <label for="comment" class="form-label"><strong>Комментарий к заказу</strong></label>
+        <textarea id="comment" class="form-control" rows="3" placeholder="Необязательно"></textarea>
+    </div>
+
+    <div class="d-flex justify-content-between mt-5">
+        <a href="/cart/" class="btn btn-outline-secondary">Назад в корзину</a>
+        <button id="confirm-order-btn" class="btn btn-success btn-lg">Подтвердить заказ</button>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error-message');
+    const cartTable = document.getElementById('cart-table');
+    const cartItems = document.getElementById('cart-items');
+    const emptyMsg = document.getElementById('cart-empty');
+    const totalRow = document.getElementById('total-row');
+    const totalPriceEl = document.getElementById('total-price');
+
+    let cartData = [];
+    let userAddresses = [];
+
+    // Загрузка корзины
+    try {
+        const res = await fetch('/api/shop/cart/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+        cartData = await res.json();
+
+        loading.classList.add('d-none');
+
+        if (cartData.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            document.getElementById('confirm-order-btn').disabled = true;
+            return;
+        }
+
+        const total = cartData.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        totalPriceEl.textContent = total.toFixed(2);
+        totalRow.classList.remove('d-none');
+        cartTable.classList.remove('d-none');
+
+        cartItems.innerHTML = cartData.map(item => `
+            <tr>
+                <td>
+                    <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
+                    ${item.product_name}
+                </td>
+                <td>${item.product_price} ₽</td>
+                <td>${item.quantity}</td>
+                <td>${item.total_price} ₽</td>
+            </tr>
+        `).join('');
+
+        updateCartBadge(cartData.length);
+    } catch (err) {
+        console.error("Ошибка загрузки корзины:", err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
+        errorDiv.classList.remove('d-none');
+    }
+
+    // Загрузка адресов
+    try {
+        const addrRes = await fetch('/api/auth/addresses/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        userAddresses = await addrRes.json();
+        renderAddressOptions();
+    } catch (err) {
+        document.getElementById('address-list').innerHTML = '<p class="text-danger">Ошибка загрузки адресов.</p>';
+    }
+
+    // Переключение доставки
+    document.querySelectorAll('input[name="delivery_type"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.value === 'pickup') {
+                document.getElementById('address-section').classList.add('d-none');
+            } else {
+                document.getElementById('address-section').classList.remove('d-none');
+            }
+        });
+    });
+
+    // Добавить новый адрес
+    document.getElementById('add-new-address').addEventListener('click', () => {
+        document.getElementById('manual-address').classList.remove('d-none');
+        document.getElementById('address-list').innerHTML = '';
+    });
+
+    // Подтверждение заказа
+    document.getElementById('confirm-order-btn').addEventListener('click', async () => {
+        const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+        let addressStr = null;
+
+        if (deliveryType === 'delivery') {
+            const savedAddr = document.querySelector('input[name="address"]:checked');
+            const manual = document.getElementById('manual-address');
+
+            if (savedAddr) {
+                const addr = userAddresses.find(a => a.id == savedAddr.value);
+                if (addr) addressStr = formatAddress(addr);
+            } else if (!manual.classList.contains('d-none')) {
+                const full_name = document.getElementById('full_name').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const address_line = document.getElementById('address_line').value.trim();
+                const city = document.getElementById('city').value.trim();
+                const postal_code = document.getElementById('postal_code').value.trim();
+
+                if (!full_name || !phone || !address_line || !city || !postal_code) {
+                    alert("Заполните все поля адреса");
+                    return;
+                }
+
+                addressStr = `${full_name}, тел: ${phone}<br>${address_line}, ${city}, ${postal_code}`;
+            } else {
+                alert("Выберите адрес доставки");
+                return;
+            }
+        } else {
+            addressStr = "Самовывоз: г. Москва, ул. Примерная, д. 1";
+        }
+
+        const comment = document.getElementById('comment').value;
+
+        try {
+            const res = await fetch('/api/shop/create-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ address: addressStr, comment })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                alert(`❌ Ошибка: ${res.status} — ${errorText}`);
+                return;
+            }
+
+            const result = await res.json();
+            if (result.order_id) {
+                alert(`✅ Заказ №${result.order_id} оформлен!`);
+                window.location.href = `/order/${result.order_id}/`;
+            } else {
+                alert("❌ Сервер не вернул ID заказа");
+            }
+        } catch (err) {
+            console.error("Ошибка сети:", err);
+            alert("❌ Не удалось подключиться к серверу");
+        }
+    });
+
+    function renderAddressOptions() {
+        const list = document.getElementById('address-list');
+        if (userAddresses.length > 0) {
+            list.innerHTML = userAddresses.map(addr => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="address" id="addr-${addr.id}" value="${addr.id}">
+                    <label class="form-check-label" for="addr-${addr.id}">
+                        ${addr.full_name}, ${addr.phone}<br>
+                        <small>${addr.address_line}, ${addr.city}, ${addr.postal_code}</small>
+                    </label>
+                </div>
+            `).join('');
+            document.getElementById('add-new-address').classList.remove('d-none');
+        } else {
+            list.innerHTML = '<p class="text-muted">Нет сохранённых адресов.</p>';
+            document.getElementById('manual-address').classList.remove('d-none');
+            document.getElementById('add-new-address').classList.add('d-none');
+        }
+    }
+
+    function formatAddress(addr) {
+        return `${addr.full_name}, тел: ${addr.phone}<br>${addr.address_line}, ${addr.city}, ${addr.postal_code}`;
+    }
+});
+</script>
+{% endblock %}

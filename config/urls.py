@@ -13,6 +13,7 @@ from shop.views import (
     cart_page,
     order_detail_page,
     orders_history_page,
+    checkout_page,
 )
 
 urlpatterns = [
@@ -40,4 +41,5 @@ urlpatterns = [
     path('cart/', cart_page, name='cart'),
     path('order/<int:order_id>/', order_detail_page, name='order_detail'),
     path('orders-history/', orders_history_page, name='orders_history'),
+    path('checkout/', checkout_page, name='checkout'),
 ]

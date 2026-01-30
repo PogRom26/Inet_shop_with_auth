@@ -61,7 +61,7 @@
                         <label class="form-check-label" for="pickup">Самовывоз (г. Москва, ул. Примерная, д. 1)</label>
                     </div>
 
-                    <!-- Блок адреса (для доставки) -->
+                    <!-- Блок адреса -->
                     <div id="address-section">
                         <p><strong>Адрес доставки:</strong></p>
                         <div id="address-list">
@@ -114,7 +114,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let cartItems = [];
     let userAddresses = [];
 
-    // Загрузка корзины
     try {
         const res = await fetch('/api/shop/cart/', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -178,7 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         addressList.innerHTML = '<p class="text-danger">Ошибка загрузки адресов.</p>';
     }
 
-    // Переключение между доставкой и самовывозом
+    // Переключение способа получения
     document.querySelectorAll('input[name="delivery_type"]').forEach(radio => {
         radio.addEventListener('change', function () {
             if (this.value === 'pickup') {
@@ -189,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Кнопка "Добавить новый адрес"
+    // Добавить новый адрес
     document.getElementById('add-new-address').addEventListener('click', () => {
         document.getElementById('manual-address').classList.remove('d-none');
         document.getElementById('address-list').innerHTML = '';
@@ -206,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (savedAddr) {
                 const addr = userAddresses.find(a => a.id == savedAddr.value);
-                addressData = formatAddress(addr);
+                if (addr) addressData = formatAddress(addr);
             } else if (!manual.classList.contains('d-none')) {
                 const full_name = document.getElementById('full_name').value.trim();
                 const phone = document.getElementById('phone').value.trim();
@@ -220,12 +219,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 addressData = `${full_name}, тел: ${phone}<br>${address_line}, ${city}, ${postal_code}`;
-            } else {
-                alert("Выберите адрес доставки");
-                return;
             }
         } else {
             addressData = "Самовывоз: г. Москва, ул. Примерная, д. 1";
+        }
+
+        if (!addressData) {
+            alert("Выберите адрес или способ получения");
+            return;
         }
 
         const comment = document.getElementById('order-comment').value;
@@ -240,9 +241,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({ address: addressData, comment })
             });
 
-            const result = await res.json();
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Ошибка API:", errorText);
+                alert(`❌ Ошибка: ${res.status} — ${errorText}`);
+                return;
+            }
 
-            if (res.ok && result.order_id) {
+            const result = await res.json();
+            if (result.order_id) {
                 const modalEl = document.getElementById('orderModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
@@ -250,11 +257,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(`✅ Заказ №${result.order_id} оформлен!`);
                 window.location.href = `/order/${result.order_id}/`;
             } else {
-                alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
+                alert("❌ Сервер не вернул ID заказа");
             }
         } catch (err) {
-            console.error("Ошибка при оформлении:", err);
-            alert("Не удалось подключиться к серверу");
+            console.error("Ошибка сети:", err);
+            alert("❌ Не удалось подключиться к серверу. Проверь консоль (F12).");
         }
     });
 

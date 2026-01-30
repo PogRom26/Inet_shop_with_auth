@@ -17,39 +17,74 @@ from user.models import Address
 
 
 # === API: Заказы ===
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import CartItem, Order, OrderItem
+from django.shortcuts import get_object_or_404
+
 class CreateOrderView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        address_id = request.data.get('address_id')
+        address = request.data.get('address')
         comment = request.data.get('comment', '')
 
-        address = get_object_or_404(Address, id=address_id, user=request.user)
-        cart_items = CartItem.objects.filter(user=request.user)
+        if not address:
+            return Response({'error': 'Адрес обязателен'}, status=400)
 
+        # Получаем корзину пользователя
+        cart_items = CartItem.objects.filter(user=request.user).select_related('product')
         if not cart_items.exists():
             return Response({'error': 'Корзина пуста'}, status=400)
 
-        # Создаём заказ
-        order = Order.objects.create(
-            user=request.user,
-            address=str(address),
-            total_price=sum(item.total_price for item in cart_items),
-            comment=comment,
-            status='pending'
-        )
+        total_price = 0
+        order_items_data = []
 
-        # Переносим товары
+        # Проверка каждого товара
         for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity,
-                price=item.product.price
+            if not item.product:
+                continue  # Пропускаем, если товар удалён
+
+            if item.quantity > item.product.stock:
+                return Response({
+                    'error': f'Недостаточно товара "{item.product.name}" на складе'
+                }, status=400)
+
+            total_price += item.product.price * item.quantity
+            order_items_data.append(item)
+
+        # Создаём заказ
+        try:
+            order = Order.objects.create(
+                user=request.user,
+                address=address,
+                total_price=total_price,
+                comment=comment,
+                status='pending'
             )
-            item.product.stock -= item.quantity
-            item.product.save()
-            item.delete()
+        except Exception as e:
+            return Response({'error': f'Ошибка создания заказа: {str(e)}'}, status=500)
+
+        # Добавляем товары в заказ
+        for item in order_items_data:
+            if not item.product:
+                continue
+
+            try:
+                OrderItem.objects.create(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price=item.product.price
+                )
+                # Уменьшаем остаток
+                item.product.stock -= item.quantity
+                item.product.save()
+                # Удаляем из корзины
+                item.delete()
+            except Exception as e:
+                return Response({'error': f'Ошибка при добавлении товара: {str(e)}'}, status=500)
 
         return Response({'order_id': order.id}, status=201)
 
@@ -319,3 +354,7 @@ def orders_history_page(request):
     if not request.user.is_authenticated:
         return redirect('/login/')
     return render(request, 'orders_history.html')
+
+
+def checkout_page(request):
+    return render(request, 'checkout.html')
