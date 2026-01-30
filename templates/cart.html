@@ -36,68 +36,25 @@
 
     <div class="d-flex justify-content-between mt-4">
         <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
-        <button id="create-order-btn" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#orderModal" disabled>
-            Оформить заказ
-        </button>
-    </div>
-
-    <!-- Модальное окно -->
-    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Оформление заказа</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Тип доставки -->
-                    <p><strong>Способ получения:</strong></p>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="delivery_type" id="delivery" value="delivery" checked>
-                        <label class="form-check-label" for="delivery">Доставка</label>
-                    </div>
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="radio" name="delivery_type" id="pickup" value="pickup">
-                        <label class="form-check-label" for="pickup">Самовывоз (г. Москва, ул. Примерная, д. 1)</label>
-                    </div>
-
-                    <!-- Блок адреса -->
-                    <div id="address-section">
-                        <p><strong>Адрес доставки:</strong></p>
-                        <div id="address-list">
-                            <p>Загрузка адресов...</p>
-                        </div>
-                        <div id="manual-address" class="d-none mt-3">
-                            <p><strong>Или введите вручную:</strong></p>
-                            <div class="mb-2">
-                                <input type="text" id="full_name" class="form-control mb-2" placeholder="ФИО">
-                                <input type="text" id="phone" class="form-control mb-2" placeholder="Телефон">
-                                <input type="text" id="address_line" class="form-control mb-2" placeholder="Улица, дом, квартира">
-                                <input type="text" id="city" class="form-control mb-2" placeholder="Город" value="Москва">
-                                <input type="text" id="postal_code" class="form-control" placeholder="Индекс">
-                            </div>
-                        </div>
-                        <button id="add-new-address" class="btn btn-sm btn-outline-primary d-none">+ Добавить новый адрес</button>
-                    </div>
-
-                    <hr>
-                    <p><strong>Комментарий к заказу:</strong></p>
-                    <textarea id="order-comment" class="form-control" rows="3" placeholder="Необязательно"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button id="confirm-order-btn" class="btn btn-success">Подтвердить заказ</button>
-                </div>
-            </div>
-        </div>
+        <a href="/checkout/" class="btn btn-success btn-lg" id="checkout-link">Оформить заказ</a>
     </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    console.log('✅ DOM загружен, начинаем проверку авторизации');
+
+    // 🔍 Проверяем наличие токенов
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    console.log('🔍 Найдены токены в localStorage:');
+    console.log('access_token:', accessToken ? 'есть' : 'отсутствует');
+    console.log('refresh_token:', refreshToken ? 'есть' : 'отсутствует');
+
+    if (!accessToken) {
+        console.log('❌ access_token отсутствует → перенаправляем на /login/');
         window.location.href = '/login/';
         return;
     }
@@ -107,36 +64,96 @@ document.addEventListener('DOMContentLoaded', async () => {
     const table = document.getElementById('cart-table');
     const tbody = document.getElementById('cart-items');
     const emptyMsg = document.getElementById('cart-empty');
-    const orderBtn = document.getElementById('create-order-btn');
+    const checkoutLink = document.getElementById('checkout-link');
     const totalRow = document.getElementById('total-row');
     const totalPriceEl = document.getElementById('total-price');
 
-    let cartItems = [];
-    let userAddresses = [];
-
     try {
+        console.log('📤 Отправляем запрос к /api/shop/cart/ с токеном');
         const res = await fetch('/api/shop/cart/', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
         });
 
-        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
-        cartItems = await res.json();
+        console.log('📩 Получен ответ:', res.status, res.statusText);
 
-        loading.classList.add('d-none');
+        if (res.status === 401) {
+            console.log('🔐 Получен статус 401 → токен недействителен');
 
-        if (cartItems.length === 0) {
-            emptyMsg.classList.remove('d-none');
+            if (refreshToken) {
+                console.log('🔄 Пытаемся обновить токен через /api/token/refresh/');
+
+                const refreshRes = await fetch('/api/token/refresh/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+
+                console.log('🔄 Ответ от /api/token/refresh/:', refreshRes.status);
+
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json();
+                    console.log('✅ Токен успешно обновлён');
+                    localStorage.setItem('access_token', data.access);
+
+                    // Повторяем запрос с новым токеном
+                    console.log('📤 Повторный запрос к /api/shop/cart/ с новым токеном');
+                    const retryRes = await fetch('/api/shop/cart/', {
+                        headers: { 'Authorization': `Bearer ${data.access}` }
+                    });
+
+                    if (retryRes.ok) {
+                        const cartItems = await retryRes.json();
+                        console.log('✅ Данные корзины получены:', cartItems);
+                        renderCart(cartItems);
+                        return;
+                    } else {
+                        console.log('❌ Ошибка при повторном запросе:', retryRes.status);
+                    }
+                } else {
+                    console.log('❌ Не удалось обновить токен');
+                }
+            }
+
+            // Очищаем и перенаправляем
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login/';
             return;
         }
 
-        const total = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        if (!res.ok) {
+            console.log('❌ Ошибка запроса:', res.status);
+            throw new Error(`Ошибка: ${res.status}`);
+        }
+
+        const cartItems = await res.json();
+        console.log('✅ Данные корзины успешно получены:', cartItems);
+        renderCart(cartItems);
+
+    } catch (err) {
+        console.error("🚨 Ошибка при загрузке корзины:", err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
+        errorDiv.classList.remove('d-none');
+    }
+
+    function renderCart(items) {
+        loading.classList.add('d-none');
+
+        if (items.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            checkoutLink.classList.add('disabled');
+            return;
+        }
+
+        const total = items.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
         totalPriceEl.textContent = total.toFixed(2);
         totalRow.classList.remove('d-none');
-
         table.classList.remove('d-none');
-        orderBtn.disabled = false;
 
-        tbody.innerHTML = cartItems.map(item => `
+        tbody.innerHTML = items.map(item => `
             <tr>
                 <td>
                     <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
@@ -157,146 +174,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             </tr>
         `).join('');
 
-        updateCartBadge(cartItems.length);
-    } catch (err) {
-        console.error("Ошибка загрузки корзины:", err);
-        errorDiv.textContent = 'Не удалось загрузить корзину';
-        errorDiv.classList.remove('d-none');
-    }
-
-    // Загрузка адресов
-    const addressList = document.getElementById('address-list');
-    try {
-        const addrRes = await fetch('/api/auth/addresses/', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        userAddresses = await addrRes.json();
-
-        renderAddressOptions();
-    } catch (err) {
-        addressList.innerHTML = '<p class="text-danger">Ошибка загрузки адресов.</p>';
-    }
-
-    // Переключение способа получения
-    document.querySelectorAll('input[name="delivery_type"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            if (this.value === 'pickup') {
-                document.getElementById('address-section').classList.add('d-none');
-            } else {
-                document.getElementById('address-section').classList.remove('d-none');
-            }
-        });
-    });
-
-    // Добавить новый адрес
-    document.getElementById('add-new-address').addEventListener('click', () => {
-        document.getElementById('manual-address').classList.remove('d-none');
-        document.getElementById('address-list').innerHTML = '';
-    });
-
-    // Подтверждение заказа
-    document.getElementById('confirm-order-btn').addEventListener('click', async () => {
-        const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
-        let addressData = null;
-
-        if (deliveryType === 'delivery') {
-            const savedAddr = document.querySelector('input[name="address"]:checked');
-            const manual = document.getElementById('manual-address');
-
-            if (savedAddr) {
-                const addr = userAddresses.find(a => a.id == savedAddr.value);
-                if (addr) addressData = formatAddress(addr);
-            } else if (!manual.classList.contains('d-none')) {
-                const full_name = document.getElementById('full_name').value.trim();
-                const phone = document.getElementById('phone').value.trim();
-                const address_line = document.getElementById('address_line').value.trim();
-                const city = document.getElementById('city').value.trim();
-                const postal_code = document.getElementById('postal_code').value.trim();
-
-                if (!full_name || !phone || !address_line || !city || !postal_code) {
-                    alert("Заполните все поля адреса");
-                    return;
-                }
-
-                addressData = `${full_name}, тел: ${phone}<br>${address_line}, ${city}, ${postal_code}`;
-            }
-        } else {
-            addressData = "Самовывоз: г. Москва, ул. Примерная, д. 1";
-        }
-
-        if (!addressData) {
-            alert("Выберите адрес или способ получения");
-            return;
-        }
-
-        const comment = document.getElementById('order-comment').value;
-
-        try {
-            const res = await fetch('/api/shop/create-order/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ address: addressData, comment })
-            });
-
-            if (!res.ok) {
-                const errorText = await res.text();
-                console.error("Ошибка API:", errorText);
-                alert(`❌ Ошибка: ${res.status} — ${errorText}`);
-                return;
-            }
-
-            const result = await res.json();
-            if (result.order_id) {
-                const modalEl = document.getElementById('orderModal');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) modal.hide();
-
-                alert(`✅ Заказ №${result.order_id} оформлен!`);
-                window.location.href = `/order/${result.order_id}/`;
-            } else {
-                alert("❌ Сервер не вернул ID заказа");
-            }
-        } catch (err) {
-            console.error("Ошибка сети:", err);
-            alert("❌ Не удалось подключиться к серверу. Проверь консоль (F12).");
-        }
-    });
-
-    function renderAddressOptions() {
-        if (userAddresses.length > 0) {
-            addressList.innerHTML = userAddresses.map(addr => `
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="address" id="addr-${addr.id}" value="${addr.id}">
-                    <label class="form-check-label" for="addr-${addr.id}">
-                        ${addr.full_name}, ${addr.phone}<br>
-                        <small>${addr.address_line}, ${addr.city}, ${addr.postal_code}</small>
-                    </label>
-                </div>
-            `).join('');
-            document.getElementById('add-new-address').classList.remove('d-none');
-        } else {
-            addressList.innerHTML = '<p class="text-muted">Нет сохранённых адресов.</p>';
-            document.getElementById('manual-address').classList.remove('d-none');
-            document.getElementById('add-new-address').classList.add('d-none');
-        }
-    }
-
-    function formatAddress(addr) {
-        return `${addr.full_name}, тел: ${addr.phone}<br>${addr.address_line}, ${addr.city}, ${addr.postal_code}`;
+        updateCartBadge(items.length);
     }
 });
 
 async function updateQuantity(itemId, delta) {
     const input = document.getElementById(`qty-${itemId}`);
     let qty = parseInt(input.value) || 1;
-    const newQty = qty + delta;
-
-    if (newQty < 1) return;
+    const newQty = Math.max(1, qty + delta);
 
     const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
     const res = await fetch(`/api/shop/cart/update/${itemId}/`, {
         method: 'PUT',
         headers: {
@@ -315,11 +207,24 @@ async function updateQuantity(itemId, delta) {
 
 async function removeFromCart(itemId) {
     const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
     await fetch(`/api/shop/cart/remove/${itemId}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
     });
     location.reload();
+}
+
+function updateCartBadge(count) {
+    const badge = document.getElementById('cart-badge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
+    }
 }
 </script>
 {% endblock %}

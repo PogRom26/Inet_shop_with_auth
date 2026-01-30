@@ -17,23 +17,14 @@ from user.models import Address
 
 
 # === API: Заказы ===
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import CartItem, Order, OrderItem
-from django.shortcuts import get_object_or_404
-
 class CreateOrderView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]  # Исправлено: IsAuthenticated не определён
 
     def post(self, request):
         address = request.data.get('address')
-        comment = request.data.get('comment', '')
-
         if not address:
             return Response({'error': 'Адрес обязателен'}, status=400)
 
-        # Получаем корзину пользователя
         cart_items = CartItem.objects.filter(user=request.user).select_related('product')
         if not cart_items.exists():
             return Response({'error': 'Корзина пуста'}, status=400)
@@ -41,16 +32,14 @@ class CreateOrderView(APIView):
         total_price = 0
         order_items_data = []
 
-        # Проверка каждого товара
+        # Проверка остатков
         for item in cart_items:
             if not item.product:
-                continue  # Пропускаем, если товар удалён
-
+                continue
             if item.quantity > item.product.stock:
                 return Response({
                     'error': f'Недостаточно товара "{item.product.name}" на складе'
                 }, status=400)
-
             total_price += item.product.price * item.quantity
             order_items_data.append(item)
 
@@ -60,23 +49,22 @@ class CreateOrderView(APIView):
                 user=request.user,
                 address=address,
                 total_price=total_price,
-                comment=comment,
                 status='pending'
             )
         except Exception as e:
             return Response({'error': f'Ошибка создания заказа: {str(e)}'}, status=500)
 
-        # Добавляем товары в заказ
+        # Добавляем товары
         for item in order_items_data:
             if not item.product:
                 continue
-
             try:
                 OrderItem.objects.create(
                     order=order,
                     product=item.product,
-                    quantity=item.quantity,
-                    price=item.product.price
+                    product_name=item.product.name,  # Исправлено: добавлено
+                    price=item.product.price,
+                    quantity=item.quantity
                 )
                 # Уменьшаем остаток
                 item.product.stock -= item.quantity
@@ -114,8 +102,6 @@ class CartListView(APIView):
         return Response(serializer.data)
 
 
-from rest_framework import status
-
 class CartAddView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -151,6 +137,7 @@ class CartAddView(APIView):
 
         serializer = CartItemSerializer(cart_item)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class CartUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -211,21 +198,20 @@ class OrderDetailView(APIView):
 
     def get(self, request, pk):
         order = get_object_or_404(Order, id=pk, user=request.user)
-        items = [
-            {
-                "product_name": item.product_name,
+        items = []
+        for item in order.items.all():
+            total = item.price * item.quantity
+            items.append({
+                "product_name": item.product.name,
                 "price": item.price,
                 "quantity": item.quantity,
-                "total_price": item.total_price,
-            }
-            for item in order.items.all()
-        ]
+                "total_price": total,
+            })
         return Response({
             "id": order.id,
             "created_at": order.created_at,
             "status": order.status,
             "total_price": order.total_price,
-            "comment": order.comment,
             "address": order.address,
             "items": items,
         })
@@ -241,14 +227,14 @@ class RepeatOrderView(APIView):
 
         for item in order.items.all():
             try:
-                product = Product.objects.get(name=item.product_name, available=True)
+                product = Product.objects.get(name=item.product.name, available=True)
             except Product.DoesNotExist:
-                errors.append(f"Товар '{item.product_name}' больше не доступен")
+                errors.append(f"Товар '{item.product.name}' больше не доступен")
                 continue
 
             available = min(item.quantity, product.stock)
             if available == 0:
-                errors.append(f"Товар '{item.product_name}' закончился")
+                errors.append(f"Товар '{item.product.name}' закончился")
                 continue
 
             cart_item, created = CartItem.objects.get_or_create(

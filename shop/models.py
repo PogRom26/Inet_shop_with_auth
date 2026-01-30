@@ -53,7 +53,7 @@ class CartItem(models.Model):
     class Meta:
         verbose_name = 'Элемент корзины'
         verbose_name_plural = 'Корзина'
-        unique_together = ('user', 'product')  # один товар — один раз в корзине
+        unique_together = ('user', 'product')
 
     def __str__(self):
         return f"{self.quantity}x {self.product.name}"
@@ -69,12 +69,12 @@ class Order(models.Model):
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    address = models.TextField('Адрес доставки')  # копия на момент заказа
+    address = models.TextField('Адрес доставки')
     total_price = models.DecimalField('Итоговая сумма', max_digits=10, decimal_places=2)
     status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField('Дата заказа', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
-    comment = models.TextField(blank=True, null=True)
+    comment = models.TextField('Комментарий', blank=True, null=True)  # ✅ Раскомментировано
 
     class Meta:
         verbose_name = 'Заказ'
@@ -87,16 +87,22 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product_name = models.CharField('Название товара', max_length=200)  # фиксация на момент заказа
-    price = models.DecimalField('Цена за штуку', max_digits=10, decimal_places=2)  # зафиксирована!
+    product_name = models.CharField('Название товара', max_length=200)
+    price = models.DecimalField('Цена за штуку', max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField('Количество')
-    total_price = models.DecimalField('Сумма', max_digits=10, decimal_places=2)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
 
+    # ✅ Убрано поле total_price из БД — оно вычисляемое
+    # Вместо этого — @property
 
     class Meta:
         verbose_name = 'Позиция заказа'
         verbose_name_plural = 'Позиции заказов'
+
+    @property
+    def total_price(self):
+        """Вычисляем общую стоимость позиции"""
+        return self.price * self.quantity
 
     def __str__(self):
         return f"{self.quantity}x {self.product_name}"
