@@ -2,79 +2,77 @@ from django.shortcuts import render, redirect
 from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
-import tempfile
 
 from .models import Product, CartItem, Order, OrderItem, Category
 from .serializers import CartItemSerializer, ProductSerializer, CategorySerializer
 from .filters import ProductFilter
 from config.pagination import StandardResultsSetPagination
-from user.models import Address
 
 
 # === API: Заказы ===
 class CreateOrderView(APIView):
-    permission_classes = [permissions.IsAuthenticated]  # Исправлено: IsAuthenticated не определён
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        address = request.data.get('address')
-        if not address:
-            return Response({'error': 'Адрес обязателен'}, status=400)
+        delivery_type = request.data.get('delivery_type', 'delivery')
+        address = request.data.get('address', '').strip()
+
+        # Валидация адреса только для доставки
+        if delivery_type == 'delivery':
+            if not address:
+                return Response({'error': 'Адрес доставки обязателен'}, status=400)
+        elif delivery_type == 'pickup':
+            address = 'Самовывоз: ул. Примерная, д. 1'  # Можно указать фиксированный адрес самовывоза
+        else:
+            return Response({'error': 'Неверный тип доставки'}, status=400)
 
         cart_items = CartItem.objects.filter(user=request.user).select_related('product')
         if not cart_items.exists():
             return Response({'error': 'Корзина пуста'}, status=400)
 
-        total_price = 0
-        order_items_data = []
+        total_price = sum(item.product.price * item.quantity for item in cart_items)
 
         # Проверка остатков
         for item in cart_items:
-            if not item.product:
-                continue
             if item.quantity > item.product.stock:
                 return Response({
                     'error': f'Недостаточно товара "{item.product.name}" на складе'
                 }, status=400)
-            total_price += item.product.price * item.quantity
-            order_items_data.append(item)
 
-        # Создаём заказ
         try:
             order = Order.objects.create(
                 user=request.user,
                 address=address,
+                delivery_type=delivery_type,
                 total_price=total_price,
                 status='pending'
             )
         except Exception as e:
             return Response({'error': f'Ошибка создания заказа: {str(e)}'}, status=500)
 
-        # Добавляем товары
-        for item in order_items_data:
-            if not item.product:
-                continue
-            try:
-                OrderItem.objects.create(
-                    order=order,
-                    product=item.product,
-                    product_name=item.product.name,  # Исправлено: добавлено
-                    price=item.product.price,
-                    quantity=item.quantity
-                )
-                # Уменьшаем остаток
-                item.product.stock -= item.quantity
-                item.product.save()
-                # Удаляем из корзины
-                item.delete()
-            except Exception as e:
-                return Response({'error': f'Ошибка при добавлении товара: {str(e)}'}, status=500)
+        # Добавляем товары в заказ
+        for item in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                product=item.product,
+                product_name=item.product.name,
+                price=item.product.price,
+                quantity=item.quantity
+            )
+            # Уменьшаем остаток
+            item.product.stock -= item.quantity
+            item.product.save()
+            # Удаляем из корзины
+            item.delete()
 
         return Response({'order_id': order.id}, status=201)
+
+
+# Остальные классы (CartListView, CartAddView и т.д.) остаются без изменений...
 
 
 class CancelOrderView(APIView):
