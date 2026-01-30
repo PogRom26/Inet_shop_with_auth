@@ -45,13 +45,10 @@
             </div>
         </div>
 
-        <!-- Адрес -->
-        <div class="mb-3">
+        <!-- Адрес (показывается только при доставке) -->
+        <div id="address-group" class="mb-3">
             <label for="address" class="form-label">Адрес доставки</label>
             <textarea id="address" class="form-control" rows="3" placeholder="Улица, дом, квартира" required></textarea>
-            <div id="pickup-info" class="form-text text-success d-none">
-                Адрес самовывоза: г. Москва, ул. Примерная, д. 1 (будет доступен после подтверждения)
-            </div>
         </div>
 
         <div class="d-flex justify-content-between">
@@ -103,12 +100,27 @@ function showModal() {
     }, 1500);
 }
 
-// Переключение поля адреса
-document.addEventListener('DOMContentLoaded', () => {
-    const deliveryRadio = document.getElementById('delivery');
-    const pickupRadio = document.getElementById('pickup');
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error-message');
+    const table = document.getElementById('cart-table');
+    const tbody = document.getElementById('cart-items');
+    const totalRow = document.getElementById('total-row');
+    const totalPriceEl = document.getElementById('total-price');
+    const checkoutForm = document.getElementById('checkout-form');
+    const cartEmpty = document.getElementById('cart-empty');
     const addressGroup = document.getElementById('address-group');
     const addressField = document.getElementById('address');
+
+    // Переключение поля адреса
+    const deliveryRadio = document.getElementById('delivery');
+    const pickupRadio = document.getElementById('pickup');
 
     function toggleAddressField() {
         if (pickupRadio.checked) {
@@ -124,46 +136,33 @@ document.addEventListener('DOMContentLoaded', () => {
     pickupRadio.addEventListener('change', toggleAddressField);
     toggleAddressField(); // Инициализация
 
-    // Загрузка корзины
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        window.location.href = '/login/';
-        return;
-    }
+    try {
+        const res = await fetch('/api/shop/cart/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-    const loading = document.getElementById('loading');
-    const errorDiv = document.getElementById('error-message');
-    const table = document.getElementById('cart-table');
-    const tbody = document.getElementById('cart-items');
-    const totalRow = document.getElementById('total-row');
-    const totalPriceEl = document.getElementById('total-price');
-    const checkoutForm = document.getElementById('checkout-form');
-    const cartEmpty = document.getElementById('cart-empty');
-
-    fetch('/api/shop/cart/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
         if (res.status === 401) {
             window.location.href = '/login/';
             return;
         }
-        return res.json();
-    })
-    .then(data => {
+
+        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+        const cartItems = await res.json();
+
         loading.classList.add('d-none');
-        if (data.length === 0) {
+
+        if (cartItems.length === 0) {
             cartEmpty.classList.remove('d-none');
             return;
         }
 
-        const total = data.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        const total = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
         totalPriceEl.textContent = total.toFixed(2);
         totalRow.classList.remove('d-none');
         table.classList.remove('d-none');
         checkoutForm.classList.remove('d-none');
 
-        tbody.innerHTML = data.map(item => `
+        tbody.innerHTML = cartItems.map(item => `
             <tr>
                 <td>
                     <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
@@ -174,17 +173,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${item.total_price} ₽</td>
             </tr>
         `).join('');
-    })
-    .catch(err => {
-        errorDiv.textContent = 'Ошибка загрузки корзины';
+    } catch (err) {
+        console.error("Ошибка загрузки корзины:", err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
         errorDiv.classList.remove('d-none');
-    });
+    }
 
     // Отправка формы
     checkoutForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const address = addressField.value;
         const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+        let address = '';
+
+        if (deliveryType === 'delivery') {
+            address = addressField.value.trim();
+            if (!address) {
+                errorDiv.textContent = 'Введите адрес доставки';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+        } else {
+            address = 'Самовывоз: ул. Примерная, д. 1';
+        }
 
         const res = await fetch('/api/shop/create-order/', {
             method: 'POST',

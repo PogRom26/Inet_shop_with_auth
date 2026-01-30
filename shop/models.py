@@ -60,29 +60,26 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
-    STATUS_CHOICES = (
-        ('pending', 'В обработке'),
-        ('confirmed', 'Подтверждён'),
-        ('shipped', 'Отправлен'),
-        ('delivered', 'Доставлен'),
-        ('cancelled', 'Отменён'),
-    )
+    DELIVERY_CHOICES = [
+        ('delivery', 'Доставка'),
+        ('pickup', 'Самовывоз'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     address = models.TextField('Адрес доставки')
+    delivery_type = models.CharField(
+        'Тип доставки',
+        max_length=20,
+        choices=DELIVERY_CHOICES,
+        default='delivery'
+    )
     total_price = models.DecimalField('Итоговая сумма', max_digits=10, decimal_places=2)
-    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='pending')
-    created_at = models.DateTimeField('Дата заказа', auto_now_add=True)
-    updated_at = models.DateTimeField('Обновлён', auto_now=True)
-    comment = models.TextField('Комментарий', blank=True, null=True)  # ✅ Раскомментировано
-
-    class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = 'Заказы'
-        ordering = ['-created_at']
+    status = models.CharField('Статус', max_length=20, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Заказ #{self.id} от {self.user.email}"
+        return f"Заказ {self.id}"
 
 
 class OrderItem(models.Model):
@@ -101,8 +98,9 @@ class OrderItem(models.Model):
 
     @property
     def total_price(self):
-        """Вычисляем общую стоимость позиции"""
-        return self.price * self.quantity
+        if self.price is not None and self.quantity is not None:
+            return self.price * self.quantity
+        return 0  # или Decimal('0.00')
 
     def __str__(self):
         return f"{self.quantity}x {self.product_name}"

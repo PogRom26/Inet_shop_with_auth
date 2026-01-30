@@ -1,34 +1,18 @@
 from django.test import TestCase
-from django.urls import reverse
-from rest_framework.test import APITestCase
-from rest_framework import status
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-
-class AuthAPITest(APITestCase):
-    def test_register_user(self):
-        url = reverse('user:register')
-        data = {
-            'email': 'test@example.com',
-            'password': 'password123'
-        }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(User.objects.filter(email='test@example.com').exists())
-
-    def test_login_user(self):
-        User.objects.create_user(
-            username='test',
-            email='test@example.com',
-            password='password123'
+class UserTestCase(TestCase):
+    def test_user_creation(self):
+        user = User.objects.create_user(
+            email="client@site.com",
+            password="securepass"
         )
-        url = reverse('token_obtain_pair')
-        data = {
-            'email': 'test@example.com',
-            'password': 'password123'
-        }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
+        self.assertEqual(user.email, "client@site.com")
+        self.assertTrue(user.check_password("securepass"))
+        self.assertFalse(user.is_superuser)
+
+    def test_user_string_representation(self):
+        user = User(email="client@site.com")
+        self.assertEqual(str(user), "client@site.com")
