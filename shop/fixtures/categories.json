@@ -1,0 +1,52 @@
+[
+  {
+    "model": "shop.category",
+    "pk": 1,
+    "fields": {
+      "name": "Смартфоны",
+      "slug": "smartfony",
+      "description": "Флагманы и бюджетные модели от Apple, Samsung, Xiaomi и других.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "shop.category",
+    "pk": 2,
+    "fields": {
+      "name": "Ноутбуки",
+      "slug": "noutbuki",
+      "description": "Ультрабуки, игровые и бизнес-ноутбуки от ведущих брендов.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "shop.category",
+    "pk": 3,
+    "fields": {
+      "name": "Наушники",
+      "slug": "naushniki",
+      "description": "Беспроводные, проводные и TWS-наушники с шумоподавлением.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "shop.category",
+    "pk": 4,
+    "fields": {
+      "name": "Планшеты",
+      "slug": "planshety",
+      "description": "iPad, Galaxy Tab, Surface и другие планшеты для работы и отдыха.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "shop.category",
+    "pk": 5,
+    "fields": {
+      "name": "Умные часы",
+      "slug": "umnye-chasy",
+      "description": "Apple Watch, Galaxy Watch, Garmin и другие умные устройства на руку.",
+      "is_active": true
+    }
+  }
+]

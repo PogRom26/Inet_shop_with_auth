@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block content %}
+    <h1><i class="bi bi-cart-check"></i> Оформление заказа</h1>
+
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем корзину...</p>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none"></div>
+
+    <table id="cart-table" class="table table-hover d-none">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+            </tr>
+        </thead>
+        <tbody id="cart-items"></tbody>
+    </table>
+
+    <div id="total-row" class="d-none text-end mt-3 mb-4">
+        <strong>Итого: <span id="total-price">0</span> ₽</strong>
+    </div>
+
+    <div id="cart-empty" class="alert alert-info d-none">
+        Корзина пуста
+    </div>
+
+    <form id="checkout-form" class="d-none">
+        <!-- Тип доставки -->
+        <div class="mb-3">
+            <label class="form-label">Способ получения</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="delivery_type" id="delivery" value="delivery" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="delivery">Доставка</label>
+
+                <input type="radio" class="btn-check" name="delivery_type" id="pickup" value="pickup" autocomplete="off">
+                <label class="btn btn-outline-primary" for="pickup">Самовывоз</label>
+            </div>
+        </div>
+
+        <!-- Адрес (показывается только при доставке) -->
+        <div id="address-group" class="mb-3">
+            <label for="address" class="form-label">Адрес доставки</label>
+            <textarea id="address" class="form-control" rows="3" placeholder="Улица, дом, квартира" required></textarea>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="/cart/" class="btn btn-outline-secondary">Назад в корзину</a>
+            <button type="submit" class="btn btn-success btn-lg">Подтвердить заказ</button>
+        </div>
+    </form>
+
+    <!-- Модальное окно успеха -->
+    <div id="success-modal" class="modal fade" tabindex="-1" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3">Заказ подтверждён!</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    .modal {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+    .modal.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Показ модального окна
+function showModal() {
+    const modal = document.getElementById('success-modal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('show'), 10);
+    setTimeout(() => {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            window.location.href = '/orders/';
+        }, 300);
+    }, 1500);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error-message');
+    const table = document.getElementById('cart-table');
+    const tbody = document.getElementById('cart-items');
+    const totalRow = document.getElementById('total-row');
+    const totalPriceEl = document.getElementById('total-price');
+    const checkoutForm = document.getElementById('checkout-form');
+    const cartEmpty = document.getElementById('cart-empty');
+    const addressGroup = document.getElementById('address-group');
+    const addressField = document.getElementById('address');
+
+    // Переключение поля адреса
+    const deliveryRadio = document.getElementById('delivery');
+    const pickupRadio = document.getElementById('pickup');
+
+    function toggleAddressField() {
+        if (pickupRadio.checked) {
+            addressGroup.classList.add('d-none');
+            addressField.removeAttribute('required');
+        } else {
+            addressGroup.classList.remove('d-none');
+            addressField.setAttribute('required', '');
+        }
+    }
+
+    deliveryRadio.addEventListener('change', toggleAddressField);
+    pickupRadio.addEventListener('change', toggleAddressField);
+    toggleAddressField(); // Инициализация
+
+    try {
+        const res = await fetch('/api/shop/cart/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 401) {
+            window.location.href = '/login/';
+            return;
+        }
+
+        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+        const cartItems = await res.json();
+
+        loading.classList.add('d-none');
+
+        if (cartItems.length === 0) {
+            cartEmpty.classList.remove('d-none');
+            return;
+        }
+
+        const total = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        totalPriceEl.textContent = total.toFixed(2);
+        totalRow.classList.remove('d-none');
+        table.classList.remove('d-none');
+        checkoutForm.classList.remove('d-none');
+
+        tbody.innerHTML = cartItems.map(item => `
+            <tr>
+                <td>
+                    <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
+                    ${item.product_name}
+                </td>
+                <td>${item.product_price} ₽</td>
+                <td>${item.quantity}</td>
+                <td>${item.total_price} ₽</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error("Ошибка загрузки корзины:", err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
+        errorDiv.classList.remove('d-none');
+    }
+
+    // Отправка формы
+    checkoutForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+        let address = '';
+
+        if (deliveryType === 'delivery') {
+            address = addressField.value.trim();
+            if (!address) {
+                errorDiv.textContent = 'Введите адрес доставки';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+        } else {
+            address = 'Самовывоз: ул. Примерная, д. 1';
+        }
+
+        const res = await fetch('/api/shop/create-order/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ address, delivery_type: deliveryType })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            showModal();
+        } else {
+            const error = await res.json();
+            errorDiv.textContent = error.error || 'Ошибка оформления заказа';
+            errorDiv.classList.remove('d-none');
+        }
+    });
+});
+</script>
+{% endblock %}

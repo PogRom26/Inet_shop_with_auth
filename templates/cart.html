@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+    <h1><i class="bi bi-cart"></i> Ваша корзина</h1>
+
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Загружаем корзину...</p>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none"></div>
+
+    <table id="cart-table" class="table table-hover d-none">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody id="cart-items"></tbody>
+    </table>
+
+    <!-- Общая сумма -->
+    <div id="total-row" class="d-none text-end mt-3">
+        <strong>Итого: <span id="total-price">0</span> ₽</strong>
+    </div>
+
+    <div id="cart-empty" class="alert alert-info d-none">
+        Корзина пуста
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <a href="/products/" class="btn btn-outline-secondary">Продолжить покупки</a>
+        <a href="/checkout/" class="btn btn-success btn-lg" id="checkout-link">Оформить заказ</a>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('✅ DOM загружен, начинаем проверку авторизации');
+
+    // 🔍 Проверяем наличие токенов
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    console.log('🔍 Найдены токены в localStorage:');
+    console.log('access_token:', accessToken ? 'есть' : 'отсутствует');
+    console.log('refresh_token:', refreshToken ? 'есть' : 'отсутствует');
+
+    if (!accessToken) {
+        console.log('❌ access_token отсутствует → перенаправляем на /login/');
+        window.location.href = '/login/';
+        return;
+    }
+
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error-message');
+    const table = document.getElementById('cart-table');
+    const tbody = document.getElementById('cart-items');
+    const emptyMsg = document.getElementById('cart-empty');
+    const checkoutLink = document.getElementById('checkout-link');
+    const totalRow = document.getElementById('total-row');
+    const totalPriceEl = document.getElementById('total-price');
+
+    try {
+        console.log('📤 Отправляем запрос к /api/shop/cart/ с токеном');
+        const res = await fetch('/api/shop/cart/', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log('📩 Получен ответ:', res.status, res.statusText);
+
+        if (res.status === 401) {
+            console.log('🔐 Получен статус 401 → токен недействителен');
+
+            if (refreshToken) {
+                console.log('🔄 Пытаемся обновить токен через /api/token/refresh/');
+
+                const refreshRes = await fetch('/api/token/refresh/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+
+                console.log('🔄 Ответ от /api/token/refresh/:', refreshRes.status);
+
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json();
+                    console.log('✅ Токен успешно обновлён');
+                    localStorage.setItem('access_token', data.access);
+
+                    // Повторяем запрос с новым токеном
+                    console.log('📤 Повторный запрос к /api/shop/cart/ с новым токеном');
+                    const retryRes = await fetch('/api/shop/cart/', {
+                        headers: { 'Authorization': `Bearer ${data.access}` }
+                    });
+
+                    if (retryRes.ok) {
+                        const cartItems = await retryRes.json();
+                        console.log('✅ Данные корзины получены:', cartItems);
+                        renderCart(cartItems);
+                        return;
+                    } else {
+                        console.log('❌ Ошибка при повторном запросе:', retryRes.status);
+                    }
+                } else {
+                    console.log('❌ Не удалось обновить токен');
+                }
+            }
+
+            // Очищаем и перенаправляем
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login/';
+            return;
+        }
+
+        if (!res.ok) {
+            console.log('❌ Ошибка запроса:', res.status);
+            throw new Error(`Ошибка: ${res.status}`);
+        }
+
+        const cartItems = await res.json();
+        console.log('✅ Данные корзины успешно получены:', cartItems);
+        renderCart(cartItems);
+
+    } catch (err) {
+        console.error("🚨 Ошибка при загрузке корзины:", err);
+        errorDiv.textContent = 'Не удалось загрузить корзину';
+        errorDiv.classList.remove('d-none');
+    }
+
+    function renderCart(items) {
+        loading.classList.add('d-none');
+
+        if (items.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            checkoutLink.classList.add('disabled');
+            return;
+        }
+
+        const total = items.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+        totalPriceEl.textContent = total.toFixed(2);
+        totalRow.classList.remove('d-none');
+        table.classList.remove('d-none');
+
+        tbody.innerHTML = items.map(item => `
+            <tr>
+                <td>
+                    <img src="${item.image_url}" alt="${item.product_name}" style="height: 30px; object-fit: cover; margin-right: 10px;">
+                    ${item.product_name}
+                </td>
+                <td>${item.product_price} ₽</td>
+                <td>
+                    <div class="input-group input-group-sm w-auto">
+                        <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, -1)">−</button>
+                        <input type="text" id="qty-${item.id}" class="form-control text-center" value="${item.quantity}" style="max-width: 60px;" readonly>
+                        <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, 1)">+</button>
+                    </div>
+                </td>
+                <td>${item.total_price} ₽</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">Удалить</button>
+                </td>
+            </tr>
+        `).join('');
+
+        updateCartBadge(items.length);
+    }
+});
+
+async function updateQuantity(itemId, delta) {
+    const input = document.getElementById(`qty-${itemId}`);
+    let qty = parseInt(input.value) || 1;
+    const newQty = Math.max(1, qty + delta);
+
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    const res = await fetch(`/api/shop/cart/update/${itemId}/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: newQty })
+    });
+
+    if (res.ok) {
+        location.reload();
+    } else {
+        alert('Ошибка при обновлении количества');
+    }
+}
+
+async function removeFromCart(itemId) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+
+    await fetch(`/api/shop/cart/remove/${itemId}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    location.reload();
+}
+
+function updateCartBadge(count) {
+    const badge = document.getElementById('cart-badge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
+    }
+}
+</script>
+{% endblock %}

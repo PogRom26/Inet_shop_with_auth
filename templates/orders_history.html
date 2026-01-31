@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}История заказов{% endblock %}
+
+{% block content %}
+    <h2><i class="bi bi-journal-text"></i> История заказов</h2>
+
+
+
+    <!-- Примеры заказов -->
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        <!-- Заказ 1 -->
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <strong>Заказ №1001</strong>
+                </div>
+                <div class="card-body">
+                    <p><i class="bi bi-calendar"></i> <strong>Дата:</strong> 5 ноября 2023 г.</p>
+                    <p><i class="bi bi-truck"></i> <strong>Доставка:</strong> Курьером по адресу</p>
+                    <p><i class="bi bi-geo-alt"></i> ул. Ленина, д. 15, кв. 42</p>
+                    <p><i class="bi bi-box-seam"></i> <strong>Статус:</strong> Доставлен</p>
+                    <p><i class="bi bi-cash"></i> <strong>Сумма:</strong> 29 990 ₽</p>
+                    <h6>Товары:</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="https://via.placeholder.com/40/007BFF/FFFFFF?text=📱" alt="Смартфон" class="me-2">
+                            Смартфон X, 128 ГБ — 1 шт.
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="https://via.placeholder.com/40/28A745/FFFFFF?text=🔋" alt="Чехол" class="me-2">
+                            Чехол с беспроводной зарядкой — 1 шт.
+                        </li>
+                    </ul>
+                    <button class="btn btn-outline-primary btn-sm">Повторить заказ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Заказ 4 -->
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <strong>Заказ №1002</strong>
+                </div>
+                <div class="card-body">
+                    <p><i class="bi bi-calendar"></i> <strong>Дата:</strong> 25 ноября 2023 г.</p>
+                    <p><i class="bi bi-shop"></i> <strong>Самовывоз:</strong> Пункт выдачи</p>
+                    <p><i class="bi bi-geo-alt"></i> м. Тверская, ул. Тверская, д. 10</p>
+                    <p><i class="bi bi-box-seam"></i> <strong>Статус:</strong> Отменён</p>
+                    <p><i class="bi bi-cash"></i> <strong>Сумма:</strong> 5 490 ₽</p>
+                    <h6>Товары:</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="https://via.placeholder.com/40/6F42C1/FFFFFF?text=🎧" alt="Наушники" class="me-2">
+                            Наушники Bluetooth — 1 шт.
+                        </li>
+                    </ul>
+                    <button class="btn btn-outline-primary btn-sm">Повторить заказ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center">
+        <a href="/catalog/" class="btn btn-outline-secondary">← Вернуться в каталог</a>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .card-header {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    .list-group-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+    img[alt="Смартфон"], img[alt="Чехол"] { border: 1px solid #007BFF; border-radius: 8px; }
+    img[alt="Куртка"] { border: 1px solid #28A745; border-radius: 8px; }
+    img[alt="Книга"] { border: 1px solid #F8C471; border-radius: 8px; }
+    img[alt="Наушники"] { border: 1px solid #6F42C1; border-radius: 8px; }
+</style>
+{% endblock %}

@@ -1,3 +1,106 @@
+# shop/models.py
 from django.db import models
+from user.models import User
 
-# Create your models here.
+class Category(models.Model):
+    name = models.CharField('Название', max_length=100, unique=True)
+    slug = models.SlugField('Слаг', max_length=100, unique=True)
+    description = models.TextField('Описание', blank=True)
+    is_active = models.BooleanField('Активна', default=True)
+
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Product(models.Model):
+    name = models.CharField('Название', max_length=200)
+    slug = models.SlugField('Слаг', max_length=200, unique=True)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name='products',
+        verbose_name='Категория'
+    )
+    description = models.TextField('Описание', blank=True)
+    price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
+    stock = models.PositiveIntegerField('Остаток на складе')
+    image = models.ImageField('Изображение', upload_to='products/', null=True, blank=True)
+    is_active = models.BooleanField('Активен', default=True)
+    available = models.BooleanField("Доступен", default=True)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлён', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Товар'
+        verbose_name_plural = 'Товары'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class CartItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField('Количество', default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Элемент корзины'
+        verbose_name_plural = 'Корзина'
+        unique_together = ('user', 'product')
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name}"
+
+
+class Order(models.Model):
+    DELIVERY_CHOICES = [
+        ('delivery', 'Доставка'),
+        ('pickup', 'Самовывоз'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    address = models.TextField('Адрес доставки')
+    delivery_type = models.CharField(
+        'Тип доставки',
+        max_length=20,
+        choices=DELIVERY_CHOICES,
+        default='delivery'
+    )
+    total_price = models.DecimalField('Итоговая сумма', max_digits=10, decimal_places=2)
+    status = models.CharField('Статус', max_length=20, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Заказ {self.id}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product_name = models.CharField('Название товара', max_length=200)
+    price = models.DecimalField('Цена за штуку', max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField('Количество')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # ✅ Убрано поле total_price из БД — оно вычисляемое
+    # Вместо этого — @property
+
+    class Meta:
+        verbose_name = 'Позиция заказа'
+        verbose_name_plural = 'Позиции заказов'
+
+    @property
+    def total_price(self):
+        if self.price is not None and self.quantity is not None:
+            return self.price * self.quantity
+        return 0  # или Decimal('0.00')
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product_name}"

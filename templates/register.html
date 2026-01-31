@@ -1,0 +1,119 @@
+<!-- templates/register.html -->
+{% extends "base.html" %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title text-center mb-4">
+                    <i class="bi bi-person-plus text-primary"></i> Регистрация
+                </h4>
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" id="password" required>
+                            <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+                </form>
+
+                <div id="result" class="mt-3"></div>
+
+                <hr>
+                <p class="text-center">
+                    Уже есть аккаунт?
+                    <a href="/login/">Войти</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Переключение видимости пароля
+document.getElementById('togglePassword').onclick = () => {
+    const pass = document.getElementById('password');
+    pass.type = pass.type === 'password' ? 'text' : 'password';
+};
+
+// Форма регистрации
+document.getElementById('registerForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    const div = document.getElementById('result');
+
+    // === Регистрация ===
+    const registerRes = await fetch('/api/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    const registerData = await registerRes.json();
+
+    if (!registerRes.ok) {
+        div.innerHTML = `
+            <div class="alert alert-danger">
+                Ошибка: ${Object.values(registerData).flat().join(', ') || 'Неизвестная ошибка'}
+            </div>
+        `;
+        return;
+    }
+
+    // === Вход после регистрации ===
+    const loginRes = await fetch('/api/token/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: data.email,
+            password: data.password
+        })
+    });
+
+    const tokenData = await loginRes.json();
+
+    if (!loginRes.ok) {
+        div.innerHTML = `
+            <div class="alert alert-warning">
+                Успешно зарегистрированы, но вход не выполнен. <a href="/login/">Войдите вручную</a>.
+            </div>
+        `;
+        setTimeout(() => {
+            window.location.href = '/login/';
+        }, 4000);
+        return;
+    }
+
+    // === Сохраняем токены ===
+    localStorage.setItem('access', tokenData.access);
+    localStorage.setItem('refresh', tokenData.refresh);
+
+    // === Успех! ===
+    div.innerHTML = `
+        <div class="alert alert-success">
+            ✅ Регистрация прошла успешно! Вы вошли в систему. Через 3 секунды — переход...
+        </div>
+    `;
+
+    // Блокировка формы
+    e.target.querySelectorAll('button, input').forEach(el => el.disabled = true);
+
+    // Редирект через 3 секунды
+    setTimeout(() => {
+        window.location.href = '/products/';
+    }, 3000);
+};
+</script>
+{% endblock %}
